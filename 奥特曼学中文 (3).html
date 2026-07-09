@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b1024">
+<title>光能小勇士 · 汉字大冒险</title>
+<style>
+  :root{
+    --void:#0b1024;
+    --void-2:#141b3d;
+    --panel:#1b2350;
+    --panel-line: rgba(255,255,255,0.08);
+    --silver:#c9d3ea;
+    --silver-dim:#8791b8;
+    --hero-red:#ff4d5e;
+    --hero-red-deep:#c81e37;
+    --energy:#ffd93d;
+    --energy-glow:#fff3b0;
+    --cyan:#4de8ff;
+    --good:#57e389;
+    --white:#f6f8ff;
+    --font-display: "YouYuan","Microsoft YaHei","PingFang SC","Heiti SC",sans-serif;
+    --font-body: "PingFang SC","Microsoft YaHei","Heiti SC",sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 20% -10%, #263173 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 10%, #2c1b4d 0%, transparent 50%),
+      var(--void);
+    color:var(--white);
+    font-family: var(--font-body);
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{ min-height:100%; display:flex; flex-direction:column; align-items:center; padding-bottom:40px;}
+
+  /* ---------- stars bg ---------- */
+  #stars{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.55;}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    width:100%; max-width:520px; display:flex; align-items:center; justify-content:space-between;
+    padding:18px 18px 10px; position:relative; z-index:2;
+  }
+  .brand{
+    font-family: var(--font-display);
+    font-size:22px; font-weight:800; letter-spacing:1px;
+    display:flex; align-items:center; gap:8px;
+    color:var(--white);
+    text-shadow: 0 0 18px rgba(77,232,255,.5);
+  }
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--energy); box-shadow:0 0 10px var(--energy);}
+  .progress-pill{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:999px;
+    padding:6px 14px; font-size:13px; color:var(--silver); display:flex; align-items:center; gap:6px;
+  }
+  .progress-pill b{color:var(--energy); font-size:14px;}
+
+  /* ---------- screen switching ---------- */
+  .screen{ width:100%; max-width:520px; position:relative; z-index:2; padding:0 16px; animation: fadein .35s ease; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .hidden{display:none !important;}
+
+  /* ================= HOME / MAP ================= */
+  .hero-banner{
+    margin:6px 0 18px; border-radius:22px; padding:20px 18px;
+    background: linear-gradient(135deg, #1c2560 0%, #2a1c55 100%);
+    border:1px solid var(--panel-line);
+    display:flex; align-items:center; gap:14px;
+    position:relative; overflow:hidden;
+  }
+  .hero-banner::after{
+    content:""; position:absolute; right:-30px; top:-30px; width:140px; height:140px; border-radius:50%;
+    background: radial-gradient(circle, rgba(77,232,255,.25), transparent 70%);
+  }
+  .hero-avatar{ width:64px; height:64px; flex-shrink:0; }
+  .hero-banner-text{position:relative; z-index:1;}
+  .hero-banner-text h1{ margin:0 0 4px; font-size:17px; font-family:var(--font-display); }
+  .hero-banner-text p{ margin:0; font-size:13px; color:var(--silver); line-height:1.5;}
+
+  .review-card{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:linear-gradient(135deg,#2c1a3f,#1b1440); border:1px solid rgba(255,105,135,.25);
+    border-radius:18px; padding:14px 16px; margin-bottom:18px; cursor:pointer;
+    transition: transform .15s ease;
+  }
+  .review-card:active{ transform:scale(.97); }
+  .review-card .rc-left{display:flex; align-items:center; gap:10px;}
+  .review-card .rc-icon{
+    width:38px;height:38px;border-radius:12px; background:rgba(255,77,94,.15);
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+  }
+  .review-card h3{ margin:0 0 2px; font-size:14px; }
+  .review-card p{ margin:0; font-size:12px; color:var(--silver-dim); }
+  .review-card .rc-count{
+    background:var(--hero-red); color:white; font-size:12px; font-weight:700;
+    padding:3px 10px; border-radius:999px;
+  }
+
+  .map-section-title{
+    font-size:13px; color:var(--silver-dim); margin:22px 4px 10px; letter-spacing:2px; text-transform:uppercase;
+  }
+
+  .level-path{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .level-row{ display:flex; align-items:center; width:100%; gap:14px; }
+  .level-row.right{ flex-direction:row-reverse; }
+  .level-node-wrap{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+  .connector{ width:2px; height:26px; background:linear-gradient(var(--panel-line), transparent); align-self:center; }
+
+  .level-node{
+    width:74px; height:74px; border-radius:22px; position:relative;
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+    border:2px solid var(--panel-line); background:var(--panel);
+    transition: transform .15s ease;
+  }
+  .level-node:active{ transform:scale(.94); }
+  .level-node.locked{ opacity:.4; filter:grayscale(1); }
+  .level-node.done{ border-color: var(--good); box-shadow:0 0 16px rgba(87,227,137,.35); }
+  .level-node.current{ border-color: var(--energy); box-shadow:0 0 18px rgba(255,217,61,.45); animation: pulse 1.8s infinite; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 10px rgba(255,217,61,.35);} 50%{ box-shadow:0 0 22px rgba(255,217,61,.65);} }
+  .level-num{ position:absolute; top:-6px; left:-6px; background:var(--void-2); border:1px solid var(--panel-line); border-radius:8px; font-size:10px; padding:2px 5px; color:var(--silver-dim); font-family:var(--font-body); }
+  .level-stars{ font-size:11px; letter-spacing:1px; color:var(--energy); height:12px; }
+  .lock-badge{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--silver-dim); }
+
+  /* ================= BATTLE SCREEN ================= */
+  .battle-header{ display:flex; align-items:center; justify-content:space-between; margin:8px 0 6px; }
+  .back-btn{ background:none; border:none; color:var(--silver); font-size:14px; display:flex; align-items:center; gap:4px; padding:8px 4px; }
+  .monster-title{ font-size:14px; color:var(--silver); }
+  .monster-title b{ color:var(--white); }
+
+  .arena{
+    border-radius:24px; padding:18px 16px 22px; margin:10px 0 16px; position:relative; overflow:hidden;
+    background: linear-gradient(160deg, var(--arena-a,#22285c), var(--arena-b,#171c40));
+    border:1px solid var(--panel-line);
+  }
+  .combatants{ display:flex; align-items:flex-end; justify-content:space-between; padding:6px 6px 14px; }
+  .combatant{ display:flex; flex-direction:column; align-items:center; width:42%; }
+  .combatant svg{ width:100%; height:auto; max-width:120px; filter: drop-shadow(0 8px 10px rgba(0,0,0,.35)); }
+  .hp-wrap{ width:100%; margin-top:8px; }
+  .hp-label{ font-size:10px; color:var(--silver-dim); display:flex; justify-content:space-between; margin-bottom:3px; }
+  .hp-bar{ height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .hp-fill{ height:100%; border-radius:6px; transition: width .4s ease; }
+  .hp-fill.hero{ background: linear-gradient(90deg, var(--energy), #ffbf3d); }
+  .hp-fill.monster{ background: linear-gradient(90deg, #ff6b81, var(--hero-red-deep)); }
+
+  .vs-badge{
+    position:absolute; left:50%; top:36%; transform:translate(-50%,-50%);
+    font-family:var(--font-display); font-size:13px; color:var(--silver-dim);
+    background:var(--void-2); border:1px solid var(--panel-line); border-radius:999px; padding:4px 10px;
+  }
+
+  .beam{ position:absolute; height:6px; border-radius:6px; background:linear-gradient(90deg, var(--cyan), var(--energy)); opacity:0; box-shadow:0 0 14px var(--cyan); }
+  .beam.fire{ animation: beamfire .45s ease forwards; }
+  @keyframes beamfire{ 0%{opacity:0; transform:scaleX(0);} 25%{opacity:1;} 80%{opacity:1; transform:scaleX(1);} 100%{opacity:0; transform:scaleX(1);} }
+
+  .shake{ animation: shakeit .35s ease; }
+  @keyframes shakeit{ 10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(3px);} 30%,50%,70%{transform:translateX(-5px);} 40%,60%{transform:translateX(5px);} }
+
+  .flash-good{ animation: flashgood .5s ease; }
+  @keyframes flashgood{ 0%{ filter:brightness(1);} 30%{filter:brightness(1.6);} 100%{filter:brightness(1);} }
+
+  /* --- question card --- */
+  .qcard{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:22px;
+    padding:26px 16px 20px; text-align:center; margin-bottom:14px;
+  }
+  .qhint{ font-size:12px; color:var(--silver-dim); margin-bottom:8px; letter-spacing:1px;}
+  .hanzi-big{
+    font-size:88px; line-height:1; font-weight:700; margin:4px 0 8px;
+    color:var(--white); text-shadow:0 0 22px rgba(77,232,255,.25);
+    font-family: var(--font-body);
+  }
+  .word-hints{ display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:18px; min-height:26px; }
+  .word-chip{
+    font-size:13px; color:var(--silver); background:var(--void-2); border:1px solid var(--panel-line);
+    border-radius:999px; padding:4px 12px; display:flex; align-items:center; gap:4px;
+    transition: all .15s ease;
+  }
+  .word-chip.speaking{ border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 10px rgba(77,232,255,.4); }
+  .reading-status{ font-size:12px; color:var(--cyan); margin:-6px 0 14px; letter-spacing:1px; }
+  .options{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  .opt-btn{
+    background:var(--void-2); border:1px solid var(--panel-line); color:var(--white);
+    border-radius:14px; padding:14px 8px; font-size:19px; font-weight:600;
+    transition: all .15s ease;
+  }
+  .opt-btn:active{ transform:scale(.96); }
+  .opt-btn.correct{ background:rgba(87,227,137,.18); border-color:var(--good); color:var(--good); }
+  .opt-btn.wrong{ background:rgba(255,77,94,.18); border-color:var(--hero-red); color:var(--hero-red); }
+  .opt-btn[disabled]{ pointer-events:none; }
+
+  .queue-strip{ display:flex; gap:6px; overflow-x:auto; padding:2px 2px 4px; margin-bottom:2px; }
+  .queue-chip{ flex-shrink:0; width:30px; height:30px; border-radius:9px; background:var(--void-2); border:1px solid var(--panel-line); display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--silver-dim); }
+  .queue-chip.active{ border-color:var(--energy); color:var(--energy); }
+
+  /* ================= RESULT SCREEN ================= */
+  .result-wrap{ text-align:center; padding:30px 10px 10px; }
+  .result-badge{ font-size:64px; margin-bottom:10px; }
+  .result-title{ font-family:var(--font-display); font-size:22px; margin:0 0 6px; }
+  .result-sub{ color:var(--silver); font-size:14px; margin:0 0 20px; }
+  .stars-row{ font-size:34px; letter-spacing:8px; margin-bottom:24px; }
+  .primary-btn{
+    width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:700;
+    background:linear-gradient(135deg, var(--hero-red), var(--hero-red-deep)); color:white; margin-bottom:10px;
+    box-shadow: 0 8px 20px rgba(255,77,94,.3);
+  }
+  .primary-btn:active{ transform:scale(.98); }
+  .ghost-btn{
+    width:100%; padding:14px; border:1px solid var(--panel-line); border-radius:16px; font-size:14px;
+    background:transparent; color:var(--silver);
+  }
+
+  /* ================= FOOTER NOTE ================= */
+  .footnote{ text-align:center; color:var(--silver-dim); font-size:11px; margin-top:26px; line-height:1.6; padding:0 20px;}
+
+  button{ font-family:inherit; cursor:pointer; }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app">
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>光能小勇士</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button id="soundToggle" class="progress-pill" style="border:1px solid var(--panel-line); font-size:16px; padding:6px 10px;">🔊</button>
+      <div class="progress-pill">已认字 <b id="learnedCount">0</b>&nbsp;/ 1000</div>
+    </div>
+  </div>
+
+  <!-- ===================== HOME SCREEN ===================== -->
+  <div class="screen" id="screen-home">
+    <div class="hero-banner">
+      <svg class="hero-avatar" viewBox="0 0 100 100"><use href="#svg-hero-face"/></svg>
+      <div class="hero-banner-text">
+        <h1>准备好认字大冒险了吗？</h1>
+        <p>每一关都有一只汉字小怪兽，认对拼音就能发出光波，把它们统统打败吧！</p>
+      </div>
+    </div>
+
+    <div class="review-card hidden" id="reviewCard">
+      <div class="rc-left">
+        <div class="rc-icon">📖</div>
+        <div>
+          <h3>怪兽笔记本</h3>
+          <p>复习答错过的字，彻底学会它</p>
+        </div>
+      </div>
+      <div class="rc-count" id="reviewCount">0</div>
+    </div>
+
+    <div class="map-section-title">闯关地图</div>
+    <div class="level-path" id="levelPath"></div>
+
+    <div class="footnote">共 50 关 · 1000 个常用汉字 · 进度会自动保存</div>
+  </div>
+
+  <!-- ===================== BATTLE SCREEN ===================== -->
+  <div class="screen hidden" id="screen-battle">
+    <div class="battle-header">
+      <button class="back-btn" id="backBtn">‹ 返回地图</button>
+      <div class="monster-title">第 <b id="battleLevelNum">1</b> 关 · <b id="battleMonsterName">小石怪</b></div>
+    </div>
+
+    <div class="arena" id="arena">
+      <div class="vs-badge">VS</div>
+      <div class="combatants">
+        <div class="combatant" id="heroCombatant">
+          <svg viewBox="0 0 100 120"><use href="#svg-hero-full"/></svg>
+          <div class="hp-wrap">
+            <div class="hp-label"><span>勇士能量</span><span id="heroHpLabel">0%</span></div>
+            <div class="hp-bar"><div class="hp-fill hero" id="heroHp" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="combatant" id="monsterCombatant">
+          <svg viewBox="0 0 100 100" id="monsterSvg"><use href="#svg-monster-rock"/></svg>
+          <div class="hp-wrap">
+            <div class="hp-label"><span id="monsterHpName">小石怪</span><span id="monsterHpLabel">100%</span></div>
+            <div class="hp-bar"><div class="hp-fill monster" id="monsterHp" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="queue-strip" id="queueStrip"></div>
+
+    <div class="qcard">
+      <div class="qhint">这个字读什么？点击正确的拼音</div>
+      <div class="hanzi-big" id="hanziBig">的</div>
+      <div class="word-hints" id="wordHints"></div>
+      <div class="reading-status hidden" id="readingStatus">🔊 正在朗读组词…</div>
+      <div class="options" id="options"></div>
+    </div>
+  </div>
+
+  <!-- ===================== RESULT SCREEN ===================== -->
+  <div class="screen hidden" id="screen-result">
+    <div class="result-wrap">
+      <div class="result-badge" id="resultBadge">🎉</div>
+      <h2 class="result-title" id="resultTitle">怪兽被打败了！</h2>
+      <p class="result-sub" id="resultSub">你认识了 20 个新汉字</p>
+      <div class="stars-row" id="resultStars">★★★</div>
+      <button class="primary-btn" id="nextLevelBtn">前往下一关</button>
+      <button class="ghost-btn" id="mapBtn">返回地图</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- =============== SVG SYMBOL LIBRARY (reused, original designs) =============== -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- Hero face icon (banner) -->
+    <symbol id="svg-hero-face" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="46" fill="#e8edfb"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#c9d3ea" stroke-width="3"/>
+      <path d="M50 8 C30 8 22 26 22 44 C22 66 34 80 50 84 C66 80 78 66 78 44 C78 26 70 8 50 8Z" fill="#f4f7fd"/>
+      <path d="M28 40 C28 26 38 16 50 16 C62 16 72 26 72 40 L72 46 L28 46 Z" fill="#ff4d5e"/>
+      <ellipse cx="38" cy="52" rx="9" ry="12" fill="#4de8ff"/>
+      <ellipse cx="62" cy="52" rx="9" ry="12" fill="#4de8ff"/>
+      <ellipse cx="38" cy="52" rx="4" ry="6" fill="#0b1024"/>
+      <ellipse cx="62" cy="52" rx="4" ry="6" fill="#0b1024"/>
+      <path d="M50 46 L50 40" stroke="#ffd93d" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="50" cy="36" r="4" fill="#ffd93d"/>
+    </symbol>
+
+    <!-- Full body hero for battle -->
+    <symbol id="svg-hero-full" viewBox="0 0 100 120">
+      <ellipse cx="50" cy="112" rx="26" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 96 C30 96 22 84 24 66 L28 40 C30 22 38 10 50 10 C62 10 70 22 72 40 L76 66 C78 84 70 96 50 96Z" fill="#f4f7fd"/>
+      <path d="M27 42 C27 26 36 14 50 14 C64 14 73 26 73 42 L73 50 L27 50Z" fill="#ff4d5e"/>
+      <rect x="27" y="48" width="46" height="6" fill="#c81e37"/>
+      <ellipse cx="38" cy="58" rx="10" ry="13" fill="#4de8ff"/>
+      <ellipse cx="62" cy="58" rx="10" ry="13" fill="#4de8ff"/>
+      <ellipse cx="38" cy="58" rx="4.5" ry="7" fill="#0b1024"/>
+      <ellipse cx="62" cy="58" rx="4.5" ry="7" fill="#0b1024"/>
+      <path d="M50 50 L50 42" stroke="#ffd93d" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="50" cy="38" r="4.5" fill="#ffd93d"/>
+      <path d="M24 66 C18 70 14 80 18 92" stroke="#f4f7fd" stroke-width="9" stroke-linecap="round" fill="none"/>
+      <path d="M76 66 C82 70 86 80 82 92" stroke="#f4f7fd" stroke-width="9" stroke-linecap="round" fill="none"/>
+      <path d="M38 94 C36 100 36 106 38 110" stroke="#c9d3ea" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <path d="M62 94 C64 100 64 106 62 110" stroke="#c9d3ea" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <circle cx="50" cy="72" r="6" fill="#ffd93d" opacity=".9"/>
+    </symbol>
+
+    <!-- Monster archetypes: 6 color themes -->
+    <symbol id="svg-monster-rock" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M20 70 L28 34 L46 20 L70 26 L82 56 L70 82 L34 86Z" fill="#a1887f"/>
+      <path d="M28 34 L46 20 L54 40 L34 46Z" fill="#8d6e63"/>
+      <circle cx="42" cy="56" r="9" fill="#fff3b0"/>
+      <circle cx="64" cy="52" r="7" fill="#fff3b0"/>
+      <circle cx="42" cy="56" r="4" fill="#2a1a10"/>
+      <circle cx="64" cy="52" r="3.2" fill="#2a1a10"/>
+      <path d="M40 74 Q52 82 66 72" stroke="#4e342e" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="svg-monster-ice" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 10 L62 38 L92 44 L66 62 L74 92 L50 76 L26 92 L34 62 L8 44 L38 38Z" fill="#81d4fa"/>
+      <circle cx="42" cy="52" r="8" fill="#e1f5fe"/>
+      <circle cx="60" cy="50" r="8" fill="#e1f5fe"/>
+      <circle cx="42" cy="52" r="3.6" fill="#01579b"/>
+      <circle cx="60" cy="50" r="3.6" fill="#01579b"/>
+      <path d="M42 68 Q51 74 60 68" stroke="#01579b" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="svg-monster-fire" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 12 C64 30 70 42 66 58 C78 52 82 62 78 72 C70 90 30 90 22 72 C16 58 24 54 32 60 C26 40 34 28 50 12Z" fill="#ff7043"/>
+      <path d="M50 34 C58 46 60 54 56 62 C50 58 46 60 46 66 C40 60 42 50 50 34Z" fill="#ffca28"/>
+      <circle cx="40" cy="66" r="6.5" fill="#3e0a02"/>
+      <circle cx="60" cy="66" r="6.5" fill="#3e0a02"/>
+      <path d="M40 80 Q50 86 60 80" stroke="#3e0a02" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="svg-monster-wind" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 14 C74 14 86 34 82 54 C90 58 88 72 76 74 C70 88 34 90 26 74 C12 72 12 56 22 52 C16 32 28 14 50 14Z" fill="#81c784"/>
+      <path d="M18 44 C10 44 8 36 14 32" stroke="#4caf50" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M84 40 C94 38 96 30 90 26" stroke="#4caf50" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="40" cy="54" r="7.5" fill="#f1f8e9"/>
+      <circle cx="62" cy="52" r="7.5" fill="#f1f8e9"/>
+      <circle cx="40" cy="54" r="3.4" fill="#1b5e20"/>
+      <circle cx="62" cy="52" r="3.4" fill="#1b5e20"/>
+      <path d="M40 70 Q51 64 62 70" stroke="#1b5e20" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="svg-monster-shadow" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 10 C72 10 84 30 80 52 C88 56 84 70 74 70 L74 78 L64 70 L54 78 L46 70 L36 78 L26 70 L26 70 C16 70 12 56 20 52 C16 30 28 10 50 10Z" fill="#7e57c2"/>
+      <circle cx="40" cy="46" r="8" fill="#ede7f6"/>
+      <circle cx="62" cy="44" r="8" fill="#ede7f6"/>
+      <circle cx="40" cy="46" r="3.6" fill="#311b52"/>
+      <circle cx="62" cy="44" r="3.6" fill="#311b52"/>
+      <path d="M42 62 Q51 58 60 62" stroke="#311b52" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="svg-monster-cosmic" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="92" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <circle cx="50" cy="52" r="38" fill="#ffca28"/>
+      <path d="M50 14 L54 26 L50 34 L46 26Z" fill="#ff8f00"/>
+      <path d="M50 90 L54 78 L50 70 L46 78Z" fill="#ff8f00"/>
+      <path d="M12 52 L24 48 L32 52 L24 56Z" fill="#ff8f00"/>
+      <path d="M88 52 L76 48 L68 52 L76 56Z" fill="#ff8f00"/>
+      <circle cx="40" cy="54" r="8" fill="#fff8e1"/>
+      <circle cx="62" cy="52" r="8" fill="#fff8e1"/>
+      <circle cx="40" cy="54" r="3.6" fill="#5d3a00"/>
+      <circle cx="62" cy="52" r="3.6" fill="#5d3a00"/>
+      <path d="M40 70 Q51 76 62 70" stroke="#5d3a00" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+/* =====================================================================
+   DATA — top 1000 most common Chinese characters, grouped into 50 levels
+   ===================================================================== */
+const LEVELS = [{"id":1,"monster":"小石怪","theme":"rock","chars":[{"h":"的","p":"de"},{"h":"一","p":"yī"},{"h":"是","p":"shì"},{"h":"不","p":"bù"},{"h":"了","p":"le"},{"h":"在","p":"zài"},{"h":"人","p":"rén"},{"h":"有","p":"yǒu"},{"h":"我","p":"wǒ"},{"h":"他","p":"tā"},{"h":"这","p":"zhè"},{"h":"个","p":"gè"},{"h":"们","p":"men"},{"h":"中","p":"zhōng"},{"h":"来","p":"lái"},{"h":"上","p":"shàng"},{"h":"大","p":"dà"},{"h":"为","p":"wèi"},{"h":"和","p":"hé"},{"h":"国","p":"guó"}]},{"id":2,"monster":"冰霜兽","theme":"ice","chars":[{"h":"地","p":"de"},{"h":"到","p":"dào"},{"h":"以","p":"yǐ"},{"h":"说","p":"shuō"},{"h":"时","p":"shí"},{"h":"要","p":"yào"},{"h":"就","p":"jiù"},{"h":"出","p":"chū"},{"h":"会","p":"huì"},{"h":"可","p":"kě"},{"h":"也","p":"yě"},{"h":"你","p":"nǐ"},{"h":"对","p":"duì"},{"h":"生","p":"shēng"},{"h":"能","p":"néng"},{"h":"而","p":"ér"},{"h":"子","p":"zi"},{"h":"那","p":"nà"},{"h":"得","p":"dé"},{"h":"于","p":"yú"}]},{"id":3,"monster":"火焰精","theme":"fire","chars":[{"h":"着","p":"zhe"},{"h":"下","p":"xià"},{"h":"自","p":"zì"},{"h":"之","p":"zhī"},{"h":"年","p":"nián"},{"h":"过","p":"guò"},{"h":"发","p":"fā"},{"h":"后","p":"hòu"},{"h":"作","p":"zuò"},{"h":"里","p":"lǐ"},{"h":"用","p":"yòng"},{"h":"道","p":"dào"},{"h":"行","p":"xíng"},{"h":"所","p":"suǒ"},{"h":"然","p":"rán"},{"h":"家","p":"jiā"},{"h":"种","p":"zhǒng"},{"h":"事","p":"shì"},{"h":"成","p":"chéng"},{"h":"方","p":"fāng"}]},{"id":4,"monster":"旋风龙","theme":"wind","chars":[{"h":"多","p":"duō"},{"h":"经","p":"jīng"},{"h":"么","p":"me"},{"h":"去","p":"qù"},{"h":"法","p":"fǎ"},{"h":"学","p":"xué"},{"h":"如","p":"rú"},{"h":"都","p":"dōu"},{"h":"同","p":"tóng"},{"h":"现","p":"xiàn"},{"h":"当","p":"dāng"},{"h":"没","p":"méi"},{"h":"动","p":"dòng"},{"h":"面","p":"miàn"},{"h":"起","p":"qǐ"},{"h":"看","p":"kàn"},{"h":"定","p":"dìng"},{"h":"天","p":"tiān"},{"h":"分","p":"fēn"},{"h":"还","p":"hái"}]},{"id":5,"monster":"乌云蟹","theme":"shadow","chars":[{"h":"进","p":"jìn"},{"h":"好","p":"hǎo"},{"h":"小","p":"xiǎo"},{"h":"部","p":"bù"},{"h":"其","p":"qí"},{"h":"些","p":"xiē"},{"h":"主","p":"zhǔ"},{"h":"样","p":"yàng"},{"h":"理","p":"lǐ"},{"h":"心","p":"xīn"},{"h":"她","p":"tā"},{"h":"本","p":"běn"},{"h":"前","p":"qián"},{"h":"开","p":"kāi"},{"h":"但","p":"dàn"},{"h":"因","p":"yīn"},{"h":"只","p":"zhǐ"},{"h":"从","p":"cóng"},{"h":"想","p":"xiǎng"},{"h":"实","p":"shí"}]},{"id":6,"monster":"闪电蜥","theme":"cosmic","chars":[{"h":"日","p":"rì"},{"h":"军","p":"jūn"},{"h":"者","p":"zhě"},{"h":"意","p":"yì"},{"h":"无","p":"wú"},{"h":"力","p":"lì"},{"h":"它","p":"tā"},{"h":"与","p":"yǔ"},{"h":"长","p":"zhǎng"},{"h":"把","p":"bǎ"},{"h":"机","p":"jī"},{"h":"十","p":"shí"},{"h":"民","p":"mín"},{"h":"第","p":"dì"},{"h":"公","p":"gōng"},{"h":"此","p":"cǐ"},{"h":"已","p":"yǐ"},{"h":"工","p":"gōng"},{"h":"使","p":"shǐ"},{"h":"情","p":"qíng"}]},{"id":7,"monster":"泡泡蛛","theme":"rock","chars":[{"h":"明","p":"míng"},{"h":"性","p":"xìng"},{"h":"知","p":"zhī"},{"h":"全","p":"quán"},{"h":"三","p":"sān"},{"h":"又","p":"yòu"},{"h":"关","p":"guān"},{"h":"点","p":"diǎn"},{"h":"正","p":"zhèng"},{"h":"业","p":"yè"},{"h":"外","p":"wài"},{"h":"将","p":"jiāng"},{"h":"两","p":"liǎng"},{"h":"高","p":"gāo"},{"h":"间","p":"jiān"},{"h":"由","p":"yóu"},{"h":"问","p":"wèn"},{"h":"很","p":"hěn"},{"h":"最","p":"zuì"},{"h":"重","p":"zhòng"}]},{"id":8,"monster":"沙尘虫","theme":"ice","chars":[{"h":"并","p":"bìng"},{"h":"物","p":"wù"},{"h":"手","p":"shǒu"},{"h":"应","p":"yīng"},{"h":"战","p":"zhàn"},{"h":"向","p":"xiàng"},{"h":"头","p":"tóu"},{"h":"文","p":"wén"},{"h":"体","p":"tǐ"},{"h":"政","p":"zhèng"},{"h":"美","p":"měi"},{"h":"相","p":"xiāng"},{"h":"见","p":"jiàn"},{"h":"被","p":"bèi"},{"h":"利","p":"lì"},{"h":"什","p":"shén"},{"h":"二","p":"èr"},{"h":"等","p":"děng"},{"h":"产","p":"chǎn"},{"h":"或","p":"huò"}]},{"id":9,"monster":"苔藓魔","theme":"fire","chars":[{"h":"新","p":"xīn"},{"h":"己","p":"jǐ"},{"h":"制","p":"zhì"},{"h":"身","p":"shēn"},{"h":"果","p":"guǒ"},{"h":"加","p":"jiā"},{"h":"西","p":"xī"},{"h":"斯","p":"sī"},{"h":"月","p":"yuè"},{"h":"话","p":"huà"},{"h":"合","p":"hé"},{"h":"回","p":"huí"},{"h":"特","p":"tè"},{"h":"代","p":"dài"},{"h":"内","p":"nèi"},{"h":"信","p":"xìn"},{"h":"表","p":"biǎo"},{"h":"化","p":"huà"},{"h":"老","p":"lǎo"},{"h":"给","p":"gěi"}]},{"id":10,"monster":"暗影王","theme":"wind","chars":[{"h":"世","p":"shì"},{"h":"位","p":"wèi"},{"h":"次","p":"cì"},{"h":"度","p":"dù"},{"h":"门","p":"mén"},{"h":"任","p":"rèn"},{"h":"常","p":"cháng"},{"h":"先","p":"xiān"},{"h":"海","p":"hǎi"},{"h":"通","p":"tōng"},{"h":"教","p":"jiào"},{"h":"儿","p":"ér"},{"h":"原","p":"yuán"},{"h":"东","p":"dōng"},{"h":"声","p":"shēng"},{"h":"提","p":"tí"},{"h":"立","p":"lì"},{"h":"及","p":"jí"},{"h":"比","p":"bǐ"},{"h":"员","p":"yuán"}]},{"id":11,"monster":"星光怪","theme":"shadow","chars":[{"h":"解","p":"jiě"},{"h":"水","p":"shuǐ"},{"h":"名","p":"míng"},{"h":"真","p":"zhēn"},{"h":"论","p":"lùn"},{"h":"处","p":"chù"},{"h":"走","p":"zǒu"},{"h":"义","p":"yì"},{"h":"各","p":"gè"},{"h":"入","p":"rù"},{"h":"几","p":"jǐ"},{"h":"口","p":"kǒu"},{"h":"认","p":"rèn"},{"h":"条","p":"tiáo"},{"h":"平","p":"píng"},{"h":"系","p":"xì"},{"h":"气","p":"qì"},{"h":"题","p":"tí"},{"h":"活","p":"huó"},{"h":"尔","p":"ěr"}]},{"id":12,"monster":"雷鸣兽","theme":"cosmic","chars":[{"h":"更","p":"gèng"},{"h":"别","p":"bié"},{"h":"打","p":"dǎ"},{"h":"女","p":"nǚ"},{"h":"变","p":"biàn"},{"h":"四","p":"sì"},{"h":"神","p":"shén"},{"h":"总","p":"zǒng"},{"h":"何","p":"hé"},{"h":"电","p":"diàn"},{"h":"数","p":"shù"},{"h":"安","p":"ān"},{"h":"少","p":"shǎo"},{"h":"报","p":"bào"},{"h":"才","p":"cái"},{"h":"结","p":"jié"},{"h":"反","p":"fǎn"},{"h":"受","p":"shòu"},{"h":"目","p":"mù"},{"h":"太","p":"tài"}]},{"id":13,"monster":"海浪精","theme":"rock","chars":[{"h":"量","p":"liàng"},{"h":"再","p":"zài"},{"h":"感","p":"gǎn"},{"h":"建","p":"jiàn"},{"h":"务","p":"wù"},{"h":"做","p":"zuò"},{"h":"接","p":"jiē"},{"h":"必","p":"bì"},{"h":"场","p":"chǎng"},{"h":"件","p":"jiàn"},{"h":"计","p":"jì"},{"h":"管","p":"guǎn"},{"h":"期","p":"qī"},{"h":"市","p":"shì"},{"h":"直","p":"zhí"},{"h":"德","p":"dé"},{"h":"资","p":"zī"},{"h":"命","p":"mìng"},{"h":"山","p":"shān"},{"h":"金","p":"jīn"}]},{"id":14,"monster":"岩浆龙","theme":"ice","chars":[{"h":"指","p":"zhǐ"},{"h":"克","p":"kè"},{"h":"许","p":"xǔ"},{"h":"统","p":"tǒng"},{"h":"区","p":"qū"},{"h":"保","p":"bǎo"},{"h":"至","p":"zhì"},{"h":"队","p":"duì"},{"h":"形","p":"xíng"},{"h":"社","p":"shè"},{"h":"便","p":"biàn"},{"h":"空","p":"kōng"},{"h":"决","p":"jué"},{"h":"治","p":"zhì"},{"h":"展","p":"zhǎn"},{"h":"马","p":"mǎ"},{"h":"科","p":"kē"},{"h":"司","p":"sī"},{"h":"五","p":"wǔ"},{"h":"基","p":"jī"}]},{"id":15,"monster":"极光蟹","theme":"fire","chars":[{"h":"眼","p":"yǎn"},{"h":"书","p":"shū"},{"h":"非","p":"fēi"},{"h":"则","p":"zé"},{"h":"听","p":"tīng"},{"h":"白","p":"bái"},{"h":"却","p":"què"},{"h":"界","p":"jiè"},{"h":"达","p":"dá"},{"h":"光","p":"guāng"},{"h":"放","p":"fàng"},{"h":"强","p":"qiáng"},{"h":"即","p":"jí"},{"h":"像","p":"xiàng"},{"h":"难","p":"nán"},{"h":"且","p":"qiě"},{"h":"权","p":"quán"},{"h":"思","p":"sī"},{"h":"王","p":"wáng"},{"h":"象","p":"xiàng"}]},{"id":16,"monster":"冰晶蜥","theme":"wind","chars":[{"h":"完","p":"wán"},{"h":"设","p":"shè"},{"h":"式","p":"shì"},{"h":"色","p":"sè"},{"h":"路","p":"lù"},{"h":"记","p":"jì"},{"h":"南","p":"nán"},{"h":"品","p":"pǐn"},{"h":"住","p":"zhù"},{"h":"告","p":"gào"},{"h":"类","p":"lèi"},{"h":"求","p":"qiú"},{"h":"据","p":"jù"},{"h":"程","p":"chéng"},{"h":"北","p":"běi"},{"h":"边","p":"biān"},{"h":"死","p":"sǐ"},{"h":"张","p":"zhāng"},{"h":"该","p":"gāi"},{"h":"交","p":"jiāo"}]},{"id":17,"monster":"尘土蛛","theme":"shadow","chars":[{"h":"规","p":"guī"},{"h":"万","p":"wàn"},{"h":"取","p":"qǔ"},{"h":"拉","p":"lā"},{"h":"格","p":"gé"},{"h":"望","p":"wàng"},{"h":"觉","p":"jué"},{"h":"术","p":"shù"},{"h":"领","p":"lǐng"},{"h":"共","p":"gòng"},{"h":"确","p":"què"},{"h":"传","p":"chuán"},{"h":"师","p":"shī"},{"h":"观","p":"guān"},{"h":"清","p":"qīng"},{"h":"今","p":"jīn"},{"h":"切","p":"qiè"},{"h":"院","p":"yuàn"},{"h":"让","p":"ràng"},{"h":"识","p":"shí"}]},{"id":18,"monster":"荆棘虫","theme":"cosmic","chars":[{"h":"候","p":"hòu"},{"h":"带","p":"dài"},{"h":"导","p":"dǎo"},{"h":"争","p":"zhēng"},{"h":"运","p":"yùn"},{"h":"笑","p":"xiào"},{"h":"飞","p":"fēi"},{"h":"风","p":"fēng"},{"h":"步","p":"bù"},{"h":"改","p":"gǎi"},{"h":"收","p":"shōu"},{"h":"根","p":"gēn"},{"h":"干","p":"gàn"},{"h":"造","p":"zào"},{"h":"言","p":"yán"},{"h":"联","p":"lián"},{"h":"持","p":"chí"},{"h":"组","p":"zǔ"},{"h":"每","p":"měi"},{"h":"济","p":"jì"}]},{"id":19,"monster":"迷雾魔","theme":"rock","chars":[{"h":"车","p":"chē"},{"h":"亲","p":"qīn"},{"h":"极","p":"jí"},{"h":"林","p":"lín"},{"h":"服","p":"fú"},{"h":"快","p":"kuài"},{"h":"办","p":"bàn"},{"h":"议","p":"yì"},{"h":"往","p":"wǎng"},{"h":"元","p":"yuán"},{"h":"英","p":"yīng"},{"h":"士","p":"shì"},{"h":"证","p":"zhèng"},{"h":"近","p":"jìn"},{"h":"失","p":"shī"},{"h":"转","p":"zhuǎn"},{"h":"夫","p":"fū"},{"h":"令","p":"lìng"},{"h":"准","p":"zhǔn"},{"h":"布","p":"bù"}]},{"id":20,"monster":"锈铁王","theme":"ice","chars":[{"h":"始","p":"shǐ"},{"h":"怎","p":"zěn"},{"h":"呢","p":"ne"},{"h":"存","p":"cún"},{"h":"未","p":"wèi"},{"h":"远","p":"yuǎn"},{"h":"叫","p":"jiào"},{"h":"台","p":"tái"},{"h":"单","p":"dān"},{"h":"影","p":"yǐng"},{"h":"具","p":"jù"},{"h":"罗","p":"luō"},{"h":"字","p":"zì"},{"h":"爱","p":"ài"},{"h":"击","p":"jī"},{"h":"流","p":"liú"},{"h":"备","p":"bèi"},{"h":"兵","p":"bīng"},{"h":"连","p":"lián"},{"h":"调","p":"diào"}]},{"id":21,"monster":"藤蔓怪","theme":"fire","chars":[{"h":"深","p":"shēn"},{"h":"商","p":"shāng"},{"h":"算","p":"suàn"},{"h":"质","p":"zhì"},{"h":"团","p":"tuán"},{"h":"集","p":"jí"},{"h":"百","p":"bǎi"},{"h":"需","p":"xū"},{"h":"价","p":"jià"},{"h":"花","p":"huā"},{"h":"党","p":"dǎng"},{"h":"华","p":"huá"},{"h":"城","p":"chéng"},{"h":"石","p":"shí"},{"h":"级","p":"jí"},{"h":"整","p":"zhěng"},{"h":"府","p":"fǔ"},{"h":"离","p":"lí"},{"h":"况","p":"kuàng"},{"h":"亚","p":"yà"}]},{"id":22,"monster":"陨石兽","theme":"wind","chars":[{"h":"请","p":"qǐng"},{"h":"技","p":"jì"},{"h":"际","p":"jì"},{"h":"约","p":"yuē"},{"h":"示","p":"shì"},{"h":"复","p":"fù"},{"h":"病","p":"bìng"},{"h":"息","p":"xī"},{"h":"究","p":"jiū"},{"h":"线","p":"xiàn"},{"h":"似","p":"shì"},{"h":"官","p":"guān"},{"h":"火","p":"huǒ"},{"h":"断","p":"duàn"},{"h":"精","p":"jīng"},{"h":"满","p":"mǎn"},{"h":"支","p":"zhī"},{"h":"视","p":"shì"},{"h":"消","p":"xiāo"},{"h":"越","p":"yuè"}]},{"id":23,"monster":"寒霜精","theme":"shadow","chars":[{"h":"器","p":"qì"},{"h":"容","p":"róng"},{"h":"照","p":"zhào"},{"h":"须","p":"xū"},{"h":"九","p":"jiǔ"},{"h":"增","p":"zēng"},{"h":"研","p":"yán"},{"h":"写","p":"xiě"},{"h":"称","p":"chēng"},{"h":"企","p":"qǐ"},{"h":"八","p":"bā"},{"h":"功","p":"gōng"},{"h":"吗","p":"ma"},{"h":"包","p":"bāo"},{"h":"片","p":"piàn"},{"h":"史","p":"shǐ"},{"h":"委","p":"wěi"},{"h":"乎","p":"hū"},{"h":"查","p":"chá"},{"h":"轻","p":"qīng"}]},{"id":24,"monster":"热浪龙","theme":"cosmic","chars":[{"h":"易","p":"yì"},{"h":"早","p":"zǎo"},{"h":"曾","p":"céng"},{"h":"除","p":"chú"},{"h":"农","p":"nóng"},{"h":"找","p":"zhǎo"},{"h":"装","p":"zhuāng"},{"h":"广","p":"guǎng"},{"h":"显","p":"xiǎn"},{"h":"吧","p":"ba"},{"h":"阿","p":"ā"},{"h":"李","p":"lǐ"},{"h":"标","p":"biāo"},{"h":"谈","p":"tán"},{"h":"吃","p":"chī"},{"h":"图","p":"tú"},{"h":"念","p":"niàn"},{"h":"六","p":"liù"},{"h":"引","p":"yǐn"},{"h":"历","p":"lì"}]},{"id":25,"monster":"涡流蟹","theme":"rock","chars":[{"h":"首","p":"shǒu"},{"h":"医","p":"yī"},{"h":"局","p":"jú"},{"h":"突","p":"tū"},{"h":"专","p":"zhuān"},{"h":"费","p":"fèi"},{"h":"号","p":"hào"},{"h":"尽","p":"jǐn"},{"h":"另","p":"lìng"},{"h":"周","p":"zhōu"},{"h":"较","p":"jiào"},{"h":"注","p":"zhù"},{"h":"语","p":"yǔ"},{"h":"仅","p":"jǐn"},{"h":"考","p":"kǎo"},{"h":"落","p":"luò"},{"h":"青","p":"qīng"},{"h":"随","p":"suí"},{"h":"选","p":"xuǎn"},{"h":"列","p":"liè"}]},{"id":26,"monster":"琥珀蜥","theme":"ice","chars":[{"h":"武","p":"wǔ"},{"h":"红","p":"hóng"},{"h":"响","p":"xiǎng"},{"h":"虽","p":"suī"},{"h":"推","p":"tuī"},{"h":"势","p":"shì"},{"h":"参","p":"cān"},{"h":"希","p":"xī"},{"h":"古","p":"gǔ"},{"h":"众","p":"zhòng"},{"h":"构","p":"gòu"},{"h":"房","p":"fáng"},{"h":"半","p":"bàn"},{"h":"节","p":"jié"},{"h":"土","p":"tǔ"},{"h":"投","p":"tóu"},{"h":"某","p":"mǒu"},{"h":"案","p":"àn"},{"h":"黑","p":"hēi"},{"h":"维","p":"wéi"}]},{"id":27,"monster":"墨影蛛","theme":"fire","chars":[{"h":"革","p":"gé"},{"h":"划","p":"huà"},{"h":"敌","p":"dí"},{"h":"致","p":"zhì"},{"h":"陈","p":"chén"},{"h":"律","p":"lǜ"},{"h":"足","p":"zú"},{"h":"态","p":"tài"},{"h":"护","p":"hù"},{"h":"七","p":"qī"},{"h":"兴","p":"xìng"},{"h":"派","p":"pài"},{"h":"孩","p":"hái"},{"h":"验","p":"yàn"},{"h":"责","p":"zé"},{"h":"营","p":"yíng"},{"h":"星","p":"xīng"},{"h":"够","p":"gòu"},{"h":"章","p":"zhāng"},{"h":"音","p":"yīn"}]},{"id":28,"monster":"晨曦虫","theme":"wind","chars":[{"h":"跟","p":"gēn"},{"h":"志","p":"zhì"},{"h":"底","p":"dǐ"},{"h":"站","p":"zhàn"},{"h":"严","p":"yán"},{"h":"巴","p":"bā"},{"h":"例","p":"lì"},{"h":"防","p":"fáng"},{"h":"族","p":"zú"},{"h":"供","p":"gōng"},{"h":"效","p":"xiào"},{"h":"续","p":"xù"},{"h":"施","p":"shī"},{"h":"留","p":"liú"},{"h":"讲","p":"jiǎng"},{"h":"型","p":"xíng"},{"h":"料","p":"liào"},{"h":"终","p":"zhōng"},{"h":"答","p":"dá"},{"h":"紧","p":"jǐn"}]},{"id":29,"monster":"暮色魔","theme":"shadow","chars":[{"h":"黄","p":"huáng"},{"h":"绝","p":"jué"},{"h":"奇","p":"qí"},{"h":"察","p":"chá"},{"h":"母","p":"mǔ"},{"h":"京","p":"jīng"},{"h":"段","p":"duàn"},{"h":"依","p":"yī"},{"h":"批","p":"pī"},{"h":"群","p":"qún"},{"h":"项","p":"xiàng"},{"h":"故","p":"gù"},{"h":"按","p":"àn"},{"h":"河","p":"hé"},{"h":"米","p":"mǐ"},{"h":"围","p":"wéi"},{"h":"江","p":"jiāng"},{"h":"织","p":"zhī"},{"h":"害","p":"hài"},{"h":"斗","p":"dòu"}]},{"id":30,"monster":"幽蓝王","theme":"cosmic","chars":[{"h":"双","p":"shuāng"},{"h":"境","p":"jìng"},{"h":"客","p":"kè"},{"h":"纪","p":"jì"},{"h":"采","p":"cǎi"},{"h":"举","p":"jǔ"},{"h":"杀","p":"shā"},{"h":"攻","p":"gōng"},{"h":"父","p":"fù"},{"h":"苏","p":"sū"},{"h":"密","p":"mì"},{"h":"低","p":"dī"},{"h":"朝","p":"cháo"},{"h":"友","p":"yǒu"},{"h":"诉","p":"sù"},{"h":"止","p":"zhǐ"},{"h":"细","p":"xì"},{"h":"愿","p":"yuàn"},{"h":"千","p":"qiān"},{"h":"值","p":"zhí"}]},{"id":31,"monster":"赤焰怪","theme":"rock","chars":[{"h":"仍","p":"réng"},{"h":"男","p":"nán"},{"h":"钱","p":"qián"},{"h":"破","p":"pò"},{"h":"网","p":"wǎng"},{"h":"热","p":"rè"},{"h":"助","p":"zhù"},{"h":"倒","p":"dào"},{"h":"育","p":"yù"},{"h":"属","p":"shǔ"},{"h":"坐","p":"zuò"},{"h":"帝","p":"dì"},{"h":"限","p":"xiàn"},{"h":"船","p":"chuán"},{"h":"脸","p":"liǎn"},{"h":"职","p":"zhí"},{"h":"速","p":"sù"},{"h":"刻","p":"kè"},{"h":"乐","p":"lè"},{"h":"否","p":"fǒu"}]},{"id":32,"monster":"青铜兽","theme":"ice","chars":[{"h":"刚","p":"gāng"},{"h":"威","p":"wēi"},{"h":"毛","p":"máo"},{"h":"状","p":"zhuàng"},{"h":"率","p":"lǜ"},{"h":"甚","p":"shén"},{"h":"独","p":"dú"},{"h":"球","p":"qiú"},{"h":"般","p":"bān"},{"h":"普","p":"pǔ"},{"h":"怕","p":"pà"},{"h":"弹","p":"dàn"},{"h":"校","p":"xiào"},{"h":"苦","p":"kǔ"},{"h":"创","p":"chuàng"},{"h":"假","p":"jiǎ"},{"h":"久","p":"jiǔ"},{"h":"错","p":"cuò"},{"h":"承","p":"chéng"},{"h":"印","p":"yìn"}]},{"id":33,"monster":"水晶精","theme":"fire","chars":[{"h":"晚","p":"wǎn"},{"h":"兰","p":"lán"},{"h":"试","p":"shì"},{"h":"股","p":"gǔ"},{"h":"拿","p":"ná"},{"h":"脑","p":"nǎo"},{"h":"预","p":"yù"},{"h":"谁","p":"shuí"},{"h":"益","p":"yì"},{"h":"阳","p":"yáng"},{"h":"若","p":"ruò"},{"h":"哪","p":"nǎ"},{"h":"微","p":"wēi"},{"h":"尼","p":"ní"},{"h":"继","p":"jì"},{"h":"送","p":"sòng"},{"h":"急","p":"jí"},{"h":"血","p":"xuè"},{"h":"惊","p":"jīng"},{"h":"伤","p":"shāng"}]},{"id":34,"monster":"飓风龙","theme":"wind","chars":[{"h":"素","p":"sù"},{"h":"药","p":"yào"},{"h":"适","p":"shì"},{"h":"波","p":"bō"},{"h":"夜","p":"yè"},{"h":"省","p":"shěng"},{"h":"初","p":"chū"},{"h":"喜","p":"xǐ"},{"h":"卫","p":"wèi"},{"h":"源","p":"yuán"},{"h":"食","p":"shí"},{"h":"险","p":"xiǎn"},{"h":"待","p":"dài"},{"h":"述","p":"shù"},{"h":"陆","p":"lù"},{"h":"习","p":"xí"},{"h":"置","p":"zhì"},{"h":"居","p":"jū"},{"h":"劳","p":"láo"},{"h":"财","p":"cái"}]},{"id":35,"monster":"暴雨蟹","theme":"shadow","chars":[{"h":"环","p":"huán"},{"h":"排","p":"pái"},{"h":"福","p":"fú"},{"h":"纳","p":"nà"},{"h":"欢","p":"huān"},{"h":"雷","p":"léi"},{"h":"警","p":"jǐng"},{"h":"获","p":"huò"},{"h":"模","p":"mó"},{"h":"充","p":"chōng"},{"h":"负","p":"fù"},{"h":"云","p":"yún"},{"h":"停","p":"tíng"},{"h":"木","p":"mù"},{"h":"游","p":"yóu"},{"h":"龙","p":"lóng"},{"h":"树","p":"shù"},{"h":"疑","p":"yí"},{"h":"层","p":"céng"},{"h":"冷","p":"lěng"}]},{"id":36,"monster":"飞沙蜥","theme":"cosmic","chars":[{"h":"洲","p":"zhōu"},{"h":"冲","p":"chōng"},{"h":"射","p":"shè"},{"h":"略","p":"lüè"},{"h":"范","p":"fàn"},{"h":"竟","p":"jìng"},{"h":"句","p":"jù"},{"h":"室","p":"shì"},{"h":"异","p":"yì"},{"h":"激","p":"jī"},{"h":"汉","p":"hàn"},{"h":"村","p":"cūn"},{"h":"哈","p":"hā"},{"h":"策","p":"cè"},{"h":"演","p":"yǎn"},{"h":"简","p":"jiǎn"},{"h":"卡","p":"kǎ"},{"h":"罪","p":"zuì"},{"h":"判","p":"pàn"},{"h":"担","p":"dān"}]},{"id":37,"monster":"流沙蛛","theme":"rock","chars":[{"h":"州","p":"zhōu"},{"h":"静","p":"jìng"},{"h":"退","p":"tuì"},{"h":"既","p":"jì"},{"h":"衣","p":"yī"},{"h":"您","p":"nín"},{"h":"宗","p":"zōng"},{"h":"积","p":"jī"},{"h":"余","p":"yú"},{"h":"痛","p":"tòng"},{"h":"检","p":"jiǎn"},{"h":"差","p":"chà"},{"h":"富","p":"fù"},{"h":"灵","p":"líng"},{"h":"协","p":"xié"},{"h":"角","p":"jiǎo"},{"h":"占","p":"zhàn"},{"h":"配","p":"pèi"},{"h":"征","p":"zhēng"},{"h":"修","p":"xiū"}]},{"id":38,"monster":"炽阳虫","theme":"ice","chars":[{"h":"皮","p":"pí"},{"h":"挥","p":"huī"},{"h":"胜","p":"shèng"},{"h":"降","p":"jiàng"},{"h":"阶","p":"jiē"},{"h":"审","p":"shěn"},{"h":"沉","p":"chén"},{"h":"坚","p":"jiān"},{"h":"善","p":"shàn"},{"h":"妈","p":"mā"},{"h":"刘","p":"liú"},{"h":"读","p":"dú"},{"h":"啊","p":"a"},{"h":"超","p":"chāo"},{"h":"免","p":"miǎn"},{"h":"压","p":"yā"},{"h":"银","p":"yín"},{"h":"买","p":"mǎi"},{"h":"皇","p":"huáng"},{"h":"养","p":"yǎng"}]},{"id":39,"monster":"寒月魔","theme":"fire","chars":[{"h":"伊","p":"yī"},{"h":"怀","p":"huái"},{"h":"执","p":"zhí"},{"h":"副","p":"fù"},{"h":"乱","p":"luàn"},{"h":"抗","p":"kàng"},{"h":"犯","p":"fàn"},{"h":"追","p":"zhuī"},{"h":"帮","p":"bāng"},{"h":"宣","p":"xuān"},{"h":"佛","p":"fú"},{"h":"岁","p":"suì"},{"h":"航","p":"háng"},{"h":"优","p":"yōu"},{"h":"怪","p":"guài"},{"h":"香","p":"xiāng"},{"h":"著","p":"zhe"},{"h":"田","p":"tián"},{"h":"铁","p":"tiě"},{"h":"控","p":"kòng"}]},{"id":40,"monster":"星尘王","theme":"wind","chars":[{"h":"税","p":"shuì"},{"h":"左","p":"zuǒ"},{"h":"右","p":"yòu"},{"h":"份","p":"fèn"},{"h":"穿","p":"chuān"},{"h":"艺","p":"yì"},{"h":"背","p":"bèi"},{"h":"阵","p":"zhèn"},{"h":"草","p":"cǎo"},{"h":"脚","p":"jiǎo"},{"h":"概","p":"gài"},{"h":"恶","p":"è"},{"h":"块","p":"kuài"},{"h":"顿","p":"dùn"},{"h":"敢","p":"gǎn"},{"h":"守","p":"shǒu"},{"h":"酒","p":"jiǔ"},{"h":"岛","p":"dǎo"},{"h":"托","p":"tuō"},{"h":"央","p":"yāng"}]},{"id":41,"monster":"裂地怪","theme":"shadow","chars":[{"h":"户","p":"hù"},{"h":"烈","p":"liè"},{"h":"洋","p":"yáng"},{"h":"哥","p":"gē"},{"h":"索","p":"suǒ"},{"h":"胡","p":"hú"},{"h":"款","p":"kuǎn"},{"h":"靠","p":"kào"},{"h":"评","p":"píng"},{"h":"版","p":"bǎn"},{"h":"宝","p":"bǎo"},{"h":"座","p":"zuò"},{"h":"释","p":"shì"},{"h":"景","p":"jǐng"},{"h":"顾","p":"gù"},{"h":"弟","p":"dì"},{"h":"登","p":"dēng"},{"h":"货","p":"huò"},{"h":"互","p":"hù"},{"h":"付","p":"fù"}]},{"id":42,"monster":"破空兽","theme":"cosmic","chars":[{"h":"伯","p":"bó"},{"h":"慢","p":"màn"},{"h":"欧","p":"ōu"},{"h":"换","p":"huàn"},{"h":"闻","p":"wén"},{"h":"危","p":"wēi"},{"h":"忙","p":"máng"},{"h":"核","p":"hé"},{"h":"暗","p":"àn"},{"h":"姐","p":"jiě"},{"h":"介","p":"jiè"},{"h":"坏","p":"huài"},{"h":"讨","p":"tǎo"},{"h":"丽","p":"lì"},{"h":"良","p":"liáng"},{"h":"序","p":"xù"},{"h":"升","p":"shēng"},{"h":"监","p":"jiān"},{"h":"临","p":"lín"},{"h":"亮","p":"liàng"}]},{"id":43,"monster":"惊雷精","theme":"rock","chars":[{"h":"露","p":"lù"},{"h":"永","p":"yǒng"},{"h":"呼","p":"hū"},{"h":"味","p":"wèi"},{"h":"野","p":"yě"},{"h":"架","p":"jià"},{"h":"域","p":"yù"},{"h":"沙","p":"shā"},{"h":"掉","p":"diào"},{"h":"括","p":"kuò"},{"h":"舰","p":"jiàn"},{"h":"鱼","p":"yú"},{"h":"杂","p":"zá"},{"h":"误","p":"wù"},{"h":"湾","p":"wān"},{"h":"吉","p":"jí"},{"h":"减","p":"jiǎn"},{"h":"编","p":"biān"},{"h":"楚","p":"chǔ"},{"h":"肯","p":"kěn"}]},{"id":44,"monster":"潜影龙","theme":"ice","chars":[{"h":"测","p":"cè"},{"h":"败","p":"bài"},{"h":"屋","p":"wū"},{"h":"跑","p":"pǎo"},{"h":"梦","p":"mèng"},{"h":"散","p":"sàn"},{"h":"温","p":"wēn"},{"h":"困","p":"kùn"},{"h":"剑","p":"jiàn"},{"h":"渐","p":"jiàn"},{"h":"封","p":"fēng"},{"h":"救","p":"jiù"},{"h":"贵","p":"guì"},{"h":"枪","p":"qiāng"},{"h":"缺","p":"quē"},{"h":"楼","p":"lóu"},{"h":"县","p":"xiàn"},{"h":"尚","p":"shàng"},{"h":"毫","p":"háo"},{"h":"移","p":"yí"}]},{"id":45,"monster":"苍岩蟹","theme":"fire","chars":[{"h":"娘","p":"niáng"},{"h":"朋","p":"péng"},{"h":"画","p":"huà"},{"h":"班","p":"bān"},{"h":"智","p":"zhì"},{"h":"亦","p":"yì"},{"h":"耳","p":"ěr"},{"h":"恩","p":"ēn"},{"h":"短","p":"duǎn"},{"h":"掌","p":"zhǎng"},{"h":"恐","p":"kǒng"},{"h":"遗","p":"yí"},{"h":"固","p":"gù"},{"h":"席","p":"xí"},{"h":"松","p":"sōng"},{"h":"秘","p":"mì"},{"h":"谢","p":"xiè"},{"h":"鲁","p":"lǔ"},{"h":"遇","p":"yù"},{"h":"康","p":"kāng"}]},{"id":46,"monster":"幻雾蜥","theme":"wind","chars":[{"h":"虑","p":"lǜ"},{"h":"幸","p":"xìng"},{"h":"均","p":"jūn"},{"h":"销","p":"xiāo"},{"h":"钟","p":"zhōng"},{"h":"诗","p":"shī"},{"h":"藏","p":"cáng"},{"h":"赶","p":"gǎn"},{"h":"剧","p":"jù"},{"h":"票","p":"piào"},{"h":"损","p":"sǔn"},{"h":"忽","p":"hū"},{"h":"巨","p":"jù"},{"h":"炮","p":"pào"},{"h":"旧","p":"jiù"},{"h":"端","p":"duān"},{"h":"探","p":"tàn"},{"h":"湖","p":"hú"},{"h":"录","p":"lù"},{"h":"叶","p":"yè"}]},{"id":47,"monster":"锋刃蛛","theme":"shadow","chars":[{"h":"春","p":"chūn"},{"h":"乡","p":"xiāng"},{"h":"附","p":"fù"},{"h":"吸","p":"xī"},{"h":"予","p":"yǔ"},{"h":"礼","p":"lǐ"},{"h":"港","p":"gǎng"},{"h":"雨","p":"yǔ"},{"h":"呀","p":"ya"},{"h":"板","p":"bǎn"},{"h":"庭","p":"tíng"},{"h":"妇","p":"fù"},{"h":"归","p":"guī"},{"h":"睛","p":"jīng"},{"h":"饭","p":"fàn"},{"h":"额","p":"é"},{"h":"含","p":"hán"},{"h":"顺","p":"shùn"},{"h":"输","p":"shū"},{"h":"摇","p":"yáo"}]},{"id":48,"monster":"巨浪虫","theme":"cosmic","chars":[{"h":"招","p":"zhāo"},{"h":"婚","p":"hūn"},{"h":"脱","p":"tuō"},{"h":"补","p":"bǔ"},{"h":"谓","p":"wèi"},{"h":"督","p":"dū"},{"h":"毒","p":"dú"},{"h":"油","p":"yóu"},{"h":"疗","p":"liáo"},{"h":"旅","p":"lǚ"},{"h":"泽","p":"zé"},{"h":"材","p":"cái"},{"h":"灭","p":"miè"},{"h":"逐","p":"zhú"},{"h":"莫","p":"mò"},{"h":"笔","p":"bǐ"},{"h":"亡","p":"wáng"},{"h":"鲜","p":"xiān"},{"h":"词","p":"cí"},{"h":"圣","p":"shèng"}]},{"id":49,"monster":"烈焰魔","theme":"rock","chars":[{"h":"择","p":"zé"},{"h":"寻","p":"xún"},{"h":"厂","p":"chǎng"},{"h":"睡","p":"shuì"},{"h":"博","p":"bó"},{"h":"勒","p":"lēi"},{"h":"烟","p":"yān"},{"h":"授","p":"shòu"},{"h":"诺","p":"nuò"},{"h":"伦","p":"lún"},{"h":"岸","p":"àn"},{"h":"奥","p":"ào"},{"h":"唐","p":"táng"},{"h":"卖","p":"mài"},{"h":"俄","p":"é"},{"h":"炸","p":"zhà"},{"h":"载","p":"zài"},{"h":"洛","p":"luò"},{"h":"健","p":"jiàn"},{"h":"堂","p":"táng"}]},{"id":50,"monster":"终焉王","theme":"ice","chars":[{"h":"旁","p":"páng"},{"h":"宫","p":"gōng"},{"h":"喝","p":"hē"},{"h":"借","p":"jiè"},{"h":"君","p":"jūn"},{"h":"禁","p":"jìn"},{"h":"阴","p":"yīn"},{"h":"园","p":"yuán"},{"h":"谋","p":"móu"},{"h":"宋","p":"sòng"},{"h":"避","p":"bì"},{"h":"抓","p":"zhuā"},{"h":"荣","p":"róng"},{"h":"姑","p":"gū"},{"h":"孙","p":"sūn"},{"h":"逃","p":"táo"},{"h":"牙","p":"yá"},{"h":"束","p":"shù"},{"h":"跳","p":"tiào"},{"h":"顶","p":"dǐng"}]}]
+;
+const CHAR_WORDS = {"的":["别的","有的","的确"],"一":["一下","一些","一共"],"是":["于是","但是","只是"],"不":["不久","不仅","不但"],"了":["为了","了解","算了"],"在":["存在","实在","正在"],"人":["个人","主人","人们"],"有":["具有","只有","所有"],"我":["我们","自我","我国"],"他":["他们","其他","他人"],"这":["这个","这么","这些"],"个":["个人","个体","个别"],"们":["人们","他们","你们"],"中":["中午","中央","中学"],"来":["上来","下来","从来"],"上":["上午","上去","上学"],"大":["不大","伟大","大人"],"为":["为了","以为","作为"],"和":["和平","暖和","温和"],"国":["国家","国王","国际"],"地":["土地","地下","地位"],"到":["到处","到底","到达"],"以":["以上","以下","以为"],"说":["听说","小说","据说"],"时":["一时","临时","准时"],"要":["不要","主要","只要"],"就":["就是","成就","就是说"],"出":["出去","出发","出口"],"会":["会场","会客","会见"],"可":["可以","可怕","可怜"],"也":["也许","再也","也好"],"你":["你们","你好","你家"],"对":["反对","对于","对付"],"生":["一生","产生","先生"],"能":["可能","能力","能够"],"而":["从而","因而","然而"],"子":["个子","例子","儿子"],"那":["那个","那么","那些"],"得":["值得","取得","得到"],"于":["于是","关于","善于"],"着":["接着","着急","用不着"],"下":["一下","下午","下去"],"自":["亲自","来自","自从"],"之":["之一","之上","之下"],"年":["今年","前年","去年"],"过":["不过","度过","经过"],"发":["出发","发出","发动"],"后":["之后","今后","以后"],"作":["作业","作为","作品"],"里":["公里","哪里","夜里"],"用":["不用","作用","使用"],"道":["一道","味道","知道"],"行":["不行","举行","实行"],"所":["厕所","所以","所有"],"然":["不然","仍然","当然"],"家":["专家","人家","作家"],"种":["各种","品种","种子"],"事":["事业","事件","事先"],"成":["变成","完成","形成"],"方":["东方","北方","南方"],"多":["多么","多少","多数"],"经":["已经","曾经","神经"],"么":["什么","多么","怎么"],"去":["上去","下去","出去"],"法":["做法","办法","想法"],"学":["上学","中学","化学"],"如":["不如","例如","如今"],"都":["首都","大都","全都"],"同":["一同","不同","共同"],"现":["出现","发现","实现"],"当":["上当","应当","当做"],"没":["没有","没用","没错"],"动":["主动","动人","动作"],"面":["上面","下面","东面"],"起":["一起","引起","起床"],"看":["好看","看来","看法"],"定":["一定","决定","制定"],"天":["今天","冬天","前天"],"分":["充分","分别","分析"],"还":["还是","偿还","归还"],"进":["促进","先进","前进"],"好":["友好","只好","好久"],"小":["大小","小姐","小学"],"部":["东部","全部","内部"],"其":["其中","其他","其余"],"些":["一些","哪些","好些"],"主":["主人","主任","主动"],"样":["一样","同样","怎样"],"理":["修理","合理","处理"],"心":["专心","中心","伤心"],"她":["她们","她家","她俩"],"本":["基本","本事","本子"],"前":["之前","从前","以前"],"开":["公开","召开","展开"],"但":["不但","但是","非但"],"因":["原因","因为","因此"],"只":["只好","只是","只有"],"从":["从事","从前","从来"],"想":["思想","想念","想法"],"实":["事实","实在","实现"],"日":["日元","日子","日常"],"军":["军事","军队","冠军"],"者":["作者","或者","记者"],"意":["主意","同意","意义"],"无":["无数","无论","无限"],"力":["力气","力量","努力"],"它":["其它","它们","吉它"],"与":["与其","与会","参与"],"长":["增长","局长","延长"],"把":["把握","把关","把戏"],"机":["危机","司机","机会"],"十":["十分","十足","十年"],"民":["人民","农民","民主"],"第":["第一","第二","第三"],"公":["公元","公共","公司"],"此":["从此","因此","此外"],"已":["已经","早已","而已"],"工":["人工","加工","工业"],"使":["使用","大使馆","使劲"],"情":["事情","同情","心情"],"明":["光明","发明","开明"],"性":["性格","性质","积极性"],"知":["知识","知道","通知"],"全":["全体","全部","全面"],"三":["再三","三角","三个"],"又":["又称","又名","好又多"],"关":["关于","关心","关照"],"点":["优点","地点","标点"],"正":["反正","改正","正在"],"业":["专业","业余","业务"],"外":["以外","另外","外交"],"将":["将来","将要","即将"],"两":["两旁","两手","两极"],"高":["崇高","提高","高兴"],"间":["中间","房间","时间"],"由":["理由","由于","自由"],"问":["学问","疑问","访问"],"很":["很多","很大","很快"],"最":["最初","最后","最好"],"重":["严重","重叠","重复"],"并":["并且","合并","并列"],"物":["事物","人物","动物"],"手":["动手","手套","手工"],"应":["反应","响应","应当"],"战":["战争","战士","战斗"],"向":["方向","一向","倾向"],"头":["回头","头发","木头"],"文":["中文","作文","文件"],"体":["个体","体会","体积"],"政":["政府","政治","政策"],"美":["优美","美丽","美元"],"相":["互相","照相","相互"],"见":["会见","再见","听见"],"被":["被子","被动","被迫"],"利":["利用","利益","有利"],"什":["什么","为什么","什么的"],"二":["第二","二人","二年"],"等":["平等","等于","等待"],"产":["产品","产生","产量"],"或":["或者","或是","或许"],"新":["新年","新闻","新鲜"],"己":["自己","知己","己方"],"制":["制定","制度","制订"],"身":["动身","身体","身边"],"果":["如果","成果","效果"],"加":["加以","加工","加强"],"西":["东西","西北","西南"],"斯":["斯文","波斯","斯密"],"月":["月亮","月球","月光"],"话":["会话","对话","电话"],"合":["合作","合同","合理"],"回":["回信","回去","回头"],"特":["特别","特此","特殊"],"代":["代替","代表","古代"],"内":["以内","内容","内部"],"信":["信封","信心","回信"],"表":["代表","发表","手表"],"化":["化学","变化","文化"],"老":["古老","老人","老实"],"给":["供给","给予","给以"],"世":["世界","世纪","逝世"],"位":["位置","单位","地位"],"次":["其次","次要","依次"],"度":["制度","度过","强度"],"门":["专门","部门","门口"],"任":["主任","任何","任务"],"常":["常常","平常","异常"],"先":["事先","先后","先生"],"海":["海关","海洋","沿海"],"通":["交通","普通","通知"],"教":["教员","教学","教室"],"儿":["儿子","儿童","女儿"],"原":["原则","原因","原料"],"东":["东北","东南","东方"],"声":["声调","声音","大声"],"提":["提供","提倡","提前"],"立":["建立","成立","独立"],"及":["以及","及时","及格"],"比":["对比","比例","比如"],"员":["人员","党员","动员"],"解":["了解","理解","解决"],"水":["水平","水果","水泥"],"名":["名字","名胜","姓名"],"真":["天真","真实","真正"],"论":["不论","争论","无论"],"处":["到处","坏处","处分"],"走":["走道","走廊","走弯路"],"义":["意义","义务","正义"],"各":["各种","各自","各别"],"入":["投入","收入","深入"],"几":["几乎","几何","几个"],"口":["人口","出口","口号"],"认":["承认","认为","认得"],"条":["便条","假条","条件"],"平":["不平","和平","平原"],"系":["体系","关系","系统"],"气":["力气","勇气","天气"],"题":["问题","题目","难题"],"活":["活动","活泼","活跃"],"尔":["偶尔","伊尔","布尔"],"更":["更加","变更","更换"],"别":["个别","分别","别人"],"打":["打倒","打听","打扮"],"女":["女人","女儿","女士"],"变":["变化","变成","改变"],"四":["四周","四处","四季"],"神":["神经","精神","神圣"],"总":["总理","总结","总统"],"何":["任何","如何","何况"],"电":["电台","电影","电报"],"数":["多数","少数","数字"],"安":["安全","安心","安慰"],"少":["不少","减少","多少"],"报":["报到","报名","报告"],"才":["刚才","天才","才能"],"结":["团结","总结","结合"],"反":["反动","反复","反对"],"受":["享受","接受","遭受"],"目":["目前","目标","目的"],"太":["太太","太阳","老太太"],"量":["产量","力量","商量"],"再":["再见","一再","再三"],"感":["感冒","感到","感动"],"建":["封建","建立","建筑"],"务":["业务","任务","服务"],"做":["做客","做梦","做法"],"接":["接到","接受","接待"],"必":["不必","必然","必要"],"场":["会场","剧场","商场"],"件":["事件","文件","条件"],"计":["估计","计划","计算"],"管":["不管","尽管","管理"],"期":["学期","日期","时期"],"市":["城市","市场","市长"],"直":["一直","直到","直接"],"德":["道德","品德","美德"],"资":["工资","资料","资源"],"命":["命令","命运","拼命"],"山":["山区","山脉","山地"],"金":["金属","奖学金","冶金"],"指":["手指","指出","指导"],"克":["克服","马克","千克"],"许":["不许","也许","允许"],"统":["传统","总统","系统"],"区":["区别","地区","山区"],"保":["保卫","保存","保护"],"至":["至今","至少","以至"],"队":["军队","部队","队伍"],"形":["形势","形容","形式"],"社":["社会","报社","社论"],"便":["便宜","便条","方便"],"空":["空中","空儿","空前"],"决":["决定","决心","坚决"],"治":["政治","统治","治疗"],"展":["发展","展出","展开"],"马":["马上","马克","马虎"],"科":["科学","科研","科长"],"司":["公司","司机","司令"],"五":["五年","十五","五一"],"基":["基本","基础","基地"],"眼":["眼前","眼泪","眼睛"],"书":["书包","书店","书架"],"非":["非常","是非","除非"],"则":["原则","否则","规则"],"听":["听写","听见","听讲"],"白":["白天","白菜","明白"],"却":["冷却","忘却","却是"],"界":["世界","外界","界线"],"达":["到达","发达","表达"],"光":["光明","光线","光荣"],"放":["开放","放假","放大"],"强":["加强","坚强","强大"],"即":["立即","即使","即将"],"像":["好像","录像","不像话"],"难":["困难","难受","难看"],"且":["并且","而且","况且"],"权":["主权","政权","权利"],"思":["思想","意思","有意思"],"王":["国王","王国","王朝"],"象":["印象","对象","形象"],"完":["完全","完成","完整"],"设":["建设","设备","设计"],"式":["形式","方式","正式"],"色":["彩色","颜色","景色"],"路":["公路","路上","路线"],"记":["书记","忘记","日记"],"南":["东南","南方","南边"],"品":["产品","作品","品种"],"住":["不住","住院","住宅"],"告":["告别","告诉","广告"],"类":["人类","之类","种类"],"求":["征求","要求","请求"],"据":["据说","根据","依据"],"程":["工程","日程","程度"],"北":["东北","北方","北边"],"边":["一边","上边","下边"],"死":["死亡","死刑","打死"],"张":["主张","紧张","张望"],"该":["应该","活该","不该"],"交":["交换","交流","交通"],"规":["规定","规律","规模"],"万":["千万","万一","万万"],"取":["争取","取得","取消"],"拉":["半拉","拖拉机","拉开"],"格":["严格","价格","及格"],"望":["失望","希望","愿望"],"觉":["感觉","睡觉","自觉"],"术":["学术","手术","技术"],"领":["本领","率领","领导"],"共":["一共","公共","共同"],"确":["准确","明确","正确"],"传":["传播","传统","宣传"],"师":["师傅","教师","老师"],"观":["主观","乐观","参观"],"清":["清楚","清晨","清晰"],"今":["今后","今天","今年"],"切":["一切","亲切","密切"],"院":["住院","出院","医院"],"让":["让步","转让","不让"],"识":["知识","认识","常识"],"候":["时候","气候","问候"],"带":["地带","磁带","一带"],"导":["指导","辅导","领导"],"争":["争取","争论","战争"],"运":["命运","运动","运用"],"笑":["微笑","笑话","开玩笑"],"飞":["飞机","起飞","飞快"],"风":["风俗","风力","风景"],"步":["初步","散步","跑步"],"改":["修改","改变","改善"],"收":["吸收","收入","收拾"],"根":["根据","根本","根源"],"干":["干净","干吗","干杯"],"造":["人造","创造","制造"],"言":["发言","语言","宣言"],"联":["联合","联欢","联系"],"持":["保持","坚持","支持"],"组":["组织","小组","组成"],"每":["每年","每个","每天"],"济":["经济","救济","济南"],"车":["卡车","汽车","火车"],"亲":["亲切","亲戚","亲爱"],"极":["极其","积极","积极性"],"林":["树林","森林","园林"],"服":["克服","服从","服务"],"快":["凉快","快乐","愉快"],"办":["办事","办公","办法"],"议":["会议","建议","议论"],"往":["往往","往来","来往"],"元":["公元","日元","美元"],"英":["英勇","英雄","英明"],"士":["女士","战士","护士"],"证":["保证","证明","证书"],"近":["接近","最近","近来"],"失":["失业","失去","失望"],"转":["转变","转告","扭转"],"夫":["丈夫","功夫","大夫"],"令":["命令","司令","法令"],"准":["准备","准时","准确"],"布":["宣布","布置","公布"],"始":["始终","开始","原始"],"怎":["怎么","怎样","怎么样"],"呢":["花呢","呢子","线呢"],"存":["保存","存在","生存"],"未":["未来","未必","从未"],"远":["永远","遥远","长远"],"叫":["叫做","喊叫","叫唤"],"台":["电台","电视台","柜台"],"单":["单位","单词","单调"],"影":["影响","影子","电影"],"具":["具体","具备","具有"],"罗":["罗列","罗马","罗田"],"字":["名字","数字","文字"],"爱":["亲爱","可爱","恋爱"],"击":["突击","冲击","反击"],"流":["交流","流利","河流"],"备":["具备","准备","设备"],"兵":["哨兵","士兵","民兵"],"连":["连忙","连续","一连"],"调":["单调","声调","强调"],"深":["深入","深刻","深厚"],"商":["商业","商品","商场"],"算":["打算","算了","计算"],"质":["性质","本质","物质"],"团":["团结","团体","团员"],"集":["集中","集体","集合"],"百":["老百姓","百货","百倍"],"需":["需要","必需","急需"],"价":["价值","价格","物价"],"花":["棉花","花园","鲜花"],"党":["党员","共产党","国民党"],"华":["华人","华侨","华丽"],"城":["城市","县城","城镇"],"石":["石头","石油","化石"],"级":["上级","初级","年级"],"整":["完整","整个","整理"],"府":["政府","王府","官府"],"离":["离婚","离开","脱离"],"况":["情况","状况","何况"],"亚":["亚军","亚洲","中亚"],"请":["请假","请客","请求"],"技":["技术","杂技","技术员"],"际":["交际","国际","实际"],"约":["大约","条约","约会"],"示":["指示","表示","显示"],"复":["反复","复习","复印"],"病":["毛病","病人","病房"],"息":["休息","消息","信息"],"究":["研究","究竟","研究所"],"线":["光线","路线","战线"],"似":["似乎","相似","似的"],"官":["军官","器官","官僚"],"火":["火柴","火车","火力"],"断":["不断","判断","中断"],"精":["精力","精彩","精神"],"满":["充满","满意","满足"],"支":["支持","支援","支配"],"视":["电视","重视","电视台"],"消":["取消","消化","消失"],"越":["优越","卓越","超越"],"器":["仪器","机器","武器"],"容":["内容","容易","形容"],"照":["关照","护照","按照"],"须":["必须","须知","无须"],"九":["九年","九月","九江"],"增":["增加","增长","增产"],"研":["研究","科研","钻研"],"写":["听写","抄写","描写"],"称":["称赞","称呼","号称"],"企":["企业","企图","外企"],"八":["八年","八月","十八"],"功":["功夫","成功","用功"],"吗":["干吗","不是吗","吗啡"],"包":["书包","包子","包括"],"片":["片面","底片","影片"],"史":["历史","史料","史学"],"委":["委员","党委","委屈"],"乎":["似乎","几乎","不在乎"],"查":["检查","调查","审查"],"轻":["减轻","年轻","轻松"],"易":["容易","贸易","好容易"],"早":["早饭","早已","早晚"],"曾":["曾经","不曾","未曾"],"除":["废除","开除","消除"],"农":["农业","农村","农民"],"找":["寻找","找到","找出"],"装":["安装","武装","装备"],"广":["广告","广场","广大"],"显":["明显","显得","显然"],"吧":["网吧","酒吧","看吧"],"阿":["阿姨","阿哥","阿里"],"李":["行李","李家","李白"],"标":["标准","标点","目标"],"谈":["会谈","座谈","谈判"],"吃":["吃惊","好吃","吃亏"],"图":["企图","地图","图书馆"],"念":["想念","概念","留念"],"六":["六年","六个","十六"],"引":["吸引","引起","引导"],"历":["历史","经历","历年"],"首":["首先","首都","为首"],"医":["医学","医生","医院"],"局":["局长","邮局","全局"],"突":["突出","突击","突然"],"专":["专业","专家","专心"],"费":["公费","学费","浪费"],"号":["口号","号召","号码"],"尽":["尽管","尽量","尽力"],"另":["另外","另行","另类"],"周":["周到","周围","周年"],"较":["比较","计较","较量"],"注":["注意","注射","注视"],"语":["口语","汉语","语气"],"仅":["不仅","仅仅","仅只"],"考":["考虑","考试","参考"],"落":["落后","角落","下落"],"青":["年青","青年","青春"],"随":["随便","随时","随即"],"选":["选举","选择","挑选"],"列":["下列","列车","排列"],"武":["武器","武术","武装"],"红":["红旗","红茶","西红柿"],"响":["响应","影响","响亮"],"虽":["虽然","虽说","虽则"],"推":["推动","推广","推翻"],"势":["形势","优势","势力"],"参":["参加","参观","参考"],"希":["希望","希奇","希尔"],"古":["古代","古老","古迹"],"众":["群众","观众","大众"],"构":["构成","构造","结构"],"房":["厨房","房子","房间"],"半":["一半","半夜","半天"],"节":["季节","春节","节日"],"土":["土地","土豆","土壤"],"投":["投入","投机","投降"],"某":["某些","某种","某个"],"案":["方案","答案","档案"],"黑":["黑暗","黑板","黑夜"],"维":["纤维","维护","思维"],"革":["改革","革命","变革"],"划":["计划","规划","划分"],"敌":["敌人","敌对","敌视"],"致":["一致","以致","大致"],"陈":["陈列","陈旧","陈述"],"律":["法律","纪律","规律"],"足":["充足","满足","足球"],"态":["态度","状态","姿态"],"护":["保护","护士","护照"],"七":["七年","七月","第七"],"兴":["兴奋","兴趣","高兴"],"派":["党派","宗派","学派"],"孩":["孩子","小孩儿","小孩"],"验":["实验","测验","经验"],"责":["负责","责任","责备"],"营":["营业","营养","国营"],"星":["卫星","星星","星期"],"够":["能够","不够","足够"],"章":["文章","党章","章程"],"音":["声音","录音","语音"],"跟":["跟前","跟头","跟踪"],"志":["同志","意志","志愿"],"底":["到底","底下","彻底"],"站":["车站","站岗","网站"],"严":["严格","严肃","严重"],"巴":["尾巴","嘴巴","巴结"],"例":["例如","例子","比例"],"防":["防止","国防","防守"],"族":["民族","种族","贵族"],"供":["供给","提供","供应"],"效":["效果","效率","有效"],"续":["手续","继续","连续"],"施":["措施","施工","实施"],"留":["保留","留念","留学生"],"讲":["听讲","讲座","讲话"],"型":["大型","典型","新型"],"料":["原料","塑料","材料"],"终":["始终","终于","终身"],"答":["回答","答卷","答应"],"紧":["抓紧","紧张","要紧"],"黄":["黄油","黄瓜","黄昏"],"绝":["拒绝","绝对","断绝"],"奇":["奇怪","奇迹","好奇"],"察":["观察","警察","考察"],"母":["伯母","母亲","字母"],"京":["北京","南京","东京"],"段":["手段","阶段","一段"],"依":["依靠","依据","依旧"],"批":["大批","批准","批判"],"群":["群众","人群","群岛"],"项":["项目","事项","项链"],"故":["故乡","故事","故意"],"按":["按时","按照","按期"],"河":["河流","山河","河道"],"米":["厘米","大米","玉米"],"围":["周围","围绕","范围"],"江":["长江","江南","江苏"],"织":["纺织","组织","编织"],"害":["危害","害处","害怕"],"斗":["奋斗","战斗","斗争"],"双":["双方","双手","双眼"],"境":["环境","入境","出境"],"客":["会客","做客","客人"],"纪":["世纪","年纪","纪律"],"采":["采取","采用","采购"],"举":["举行","选举","举办"],"杀":["屠杀","抹杀","暗杀"],"攻":["进攻","攻克","攻击"],"父":["父亲","祖父","外祖父"],"苏":["苏醒","苏联","江苏"],"密":["密切","秘密","严密"],"低":["降低","低下","低劣"],"朝":["朝代","朝气","朝鲜"],"友":["友好","友谊","朋友"],"诉":["告诉","上诉","控诉"],"止":["停止","禁止","防止"],"细":["仔细","细心","细菌"],"愿":["愿意","愿望","志愿"],"千":["千万","千克","千瓦"],"值":["价值","值得","产值"],"仍":["仍然","仍旧","仍以"],"男":["男人","男子","男性"],"钱":["零钱","价钱","工钱"],"破":["破坏","打破","破产"],"网":["网球","网站","网上"],"热":["热心","热情","热烈"],"助":["帮助","互助","助手"],"倒":["打倒","倒腾","倒霉"],"育":["体育","教育","体育场"],"属":["属于","金属","家属"],"坐":["坐班","坐在","坐下"],"帝":["皇帝","上帝","帝国"],"限":["无限","限制","有限"],"船":["轮船","汽船","帆船"],"脸":["脸色","脸盆","脸上"],"职":["职业","职工","职员"],"速":["迅速","速度","加速"],"刻":["刻苦","时刻","深刻"],"乐":["乐观","快乐","音乐"],"否":["否则","否定","是否"],"刚":["刚刚","刚才","刚好"],"威":["威胁","示威","威信"],"毛":["毛巾","毛病","毛衣"],"状":["形状","状况","状态"],"率":["效率","率领","汇率"],"甚":["甚至","甚至于","甚么"],"独":["独立","单独","独特"],"球":["地球","排球","月球"],"般":["一般","这般","般的"],"普":["普通","普遍","普及"],"怕":["可怕","哪怕","害怕"],"弹":["子弹","导弹","炮弹"],"校":["学校","校长","校园"],"苦":["刻苦","痛苦","艰苦"],"创":["创作","创造","创新"],"假":["假条","寒假","放假"],"久":["不久","好久","悠久"],"错":["不错","没错","错误"],"承":["承认","承包","承担"],"印":["印刷","印象","复印"],"晚":["傍晚","夜晚","晚上"],"兰":["兰花","波兰","兰州"],"试":["考试","试卷","试验"],"股":["屁股","股东","股份"],"拿":["拿出","拿到","拿下"],"脑":["脑子","脑袋","大脑"],"预":["预习","预备","预先"],"谁":["谁知","谁家","谁料"],"益":["利益","日益","有益"],"阳":["太阳","阳光","洛阳"],"若":["倘若","假若","若干"],"哪":["哪个","哪些","哪怕"],"微":["微笑","稍微","微小"],"尼":["尼龙","印尼","索尼"],"继":["继续","继承","相继"],"送":["欢送","送行","播送"],"急":["急忙","着急","急躁"],"血":["血液","血汗","血管"],"惊":["吃惊","惊人","惊动"],"伤":["伤心","伤口","伤害"],"素":["因素","朴素","元素"],"药":["中药","农药","火药"],"适":["合适","舒适","适合"],"波":["波浪","波动","波涛"],"夜":["半夜","夜晚","夜里"],"省":["节省","省得","省长"],"初":["初步","初级","最初"],"喜":["喜欢","喜悦","喜爱"],"卫":["保卫","卫星","卫生"],"源":["能源","资源","来源"],"食":["伙食","副食","粮食"],"险":["危险","保险","冒险"],"待":["对待","招待","接待"],"述":["复述","上述","叙述"],"陆":["大陆","陆续","陆军"],"习":["习惯","复习","学习"],"置":["位置","布置","装置"],"居":["邻居","居住","居民"],"劳":["劳动","劳驾","疲劳"],"财":["财产","财富","财政"],"环":["环境","循环","环节"],"排":["安排","排球","排列"],"福":["幸福","享福","祝福"],"纳":["容纳","归纳","纳税"],"欢":["喜欢","欢迎","欢送"],"雷":["雷达","雷雨","鱼雷"],"警":["警察","警告","警惕"],"获":["收获","获得","查获"],"模":["模仿","模样","规模"],"充":["充分","充满","充足"],"负":["负责","担负","欺负"],"云":["乌云","云彩","云南"],"停":["停止","不停","停留"],"木":["木头","木材","树木"],"游":["游泳","游览","游泳池"],"龙":["尼龙","龙头","小龙"],"树":["树林","松树","果树"],"疑":["疑问","怀疑","无疑"],"层":["基层","阶层","上层"],"冷":["寒冷","冷却","冷静"],"洲":["欧洲","亚洲","非洲"],"冲":["冲击","冲突","冲破"],"射":["发射","射击","注射"],"略":["侵略","战略","忽略"],"范":["范围","师范","模范"],"竟":["究竟","毕竟","竟然"],"句":["句子","造句","词句"],"室":["教室","办公室","医务室"],"异":["异常","惊异","优异"],"激":["感激","激动","激烈"],"汉":["汉字","汉语","汉奸"],"村":["农村","乡村","村子"],"哈":["哈哈","哈里","哈密"],"策":["政策","决策","对策"],"演":["开演","演出","演员"],"简":["简单","简便","简直"],"卡":["卡车","卡片","卡拉"],"罪":["犯罪","罪恶","罪行"],"判":["判断","批判","谈判"],"担":["担任","担心","承担"],"州":["广州","随州","州长"],"静":["安静","平静","冷静"],"退":["后退","退休","退步"],"既":["既然","既有","既定"],"衣":["上衣","大衣","棉衣"],"您":["您老","您好","您们"],"宗":["宗教","宗派","宗旨"],"积":["体积","积极","积累"],"余":["业余","其余","剩余"],"痛":["悲痛","痛快","痛苦"],"检":["检查","检讨","检验"],"差":["差不多","差点儿","差别"],"富":["丰富","富有","富裕"],"灵":["灵活","灵魂","心灵"],"协":["协会","协作","协助"],"角":["角度","角落","三角"],"占":["占有","占领","侵占"],"配":["分配","配合","支配"],"征":["征求","征服","特征"],"修":["修改","修理","进修"],"皮":["皮肤","调皮","橡皮"],"挥":["发挥","指挥","挥霍"],"胜":["名胜","战胜","胜利"],"降":["降低","下降","投降"],"阶":["阶段","阶级","阶层"],"审":["审查","审判","审定"],"沉":["沉默","沉思","沉重"],"坚":["坚决","坚定","坚强"],"善":["善于","改善","完善"],"妈":["妈妈","大妈","姑妈"],"刘":["刘备","刘家","刘基"],"读":["朗读","读书","读者"],"啊":["啊哈","啊呀","啊哟"],"超":["超过","超额","超产"],"免":["避免","不免","免得"],"压":["压迫","压制","压力"],"银":["银行","银幕","银子"],"买":["买卖","购买","收买"],"皇":["皇帝","皇后","皇上"],"养":["营养","养成","养料"],"伊":["伊尔","伊利","伊万"],"怀":["关怀","怀念","怀疑"],"执":["执行","固执","执勤"],"副":["副食","副业","一副"],"乱":["胡乱","混乱","动乱"],"抗":["反抗","抗议","抵抗"],"犯":["侵犯","犯人","犯罪"],"追":["追求","追悼","追查"],"帮":["帮助","帮忙","帮主"],"宣":["宣传","宣布","宣告"],"佛":["仿佛","佛教","佛像"],"岁":["万岁","岁数","岁月"],"航":["航空","航行","导航"],"优":["优点","优秀","优美"],"怪":["奇怪","难怪","怪不得"],"香":["香皂","香肠","香蕉"],"著":["显著","著作","著名"],"田":["田野","农田","油田"],"铁":["铁路","地铁","磁铁"],"控":["控制","控诉","遥控"],"税":["偷税","漏税","税收"],"左":["左右","左边","左手"],"右":["右边","左右","右手"],"份":["月份","股份","一份"],"穿":["穿过","身穿","穿越"],"艺":["文艺","艺术","工艺品"],"背":["背后","背包","背心"],"阵":["一阵","阵地","阵容"],"草":["草原","草地","草案"],"脚":["脚步","山脚","脚下"],"概":["大概","概念","概括"],"恶":["凶恶","厌恶","恶劣"],"块":["一块儿","一块","板块"],"顿":["整顿","顿时","停顿"],"敢":["勇敢","不敢当","敢于"],"守":["遵守","保守","防守"],"酒":["啤酒","敬酒","酒店"],"岛":["半岛","岛屿","群岛"],"托":["委托","托儿所","摩托车"],"央":["中央","央视","央行"],"户":["窗户","个体户","农户"],"烈":["强烈","激烈","热烈"],"洋":["海洋","出洋相","汪洋"],"哥":["哥哥","大哥","阿哥"],"索":["思索","探索","搜索"],"胡":["胡乱","胡子","胡同"],"款":["款待","汇款","付款"],"靠":["依靠","可靠","靠近"],"评":["批评","评价","评论"],"版":["出版","版本","版图"],"宝":["宝贵","宝石","宝剑"],"座":["座位","座谈","讲座"],"释":["解释","注释","释放"],"景":["情景","风景","景物"],"顾":["照顾","顾客","不顾"],"弟":["兄弟","弟弟","弟兄"],"登":["登记","攀登","刊登"],"货":["售货","百货","货币"],"互":["互相","相互","互助"],"付":["对付","应付","交付"],"伯":["伯母","伯伯","伯父"],"慢":["缓慢","怠慢","慢性"],"欧":["欧洲","欧元","西欧"],"换":["交换","兑换","变换"],"闻":["新闻","闻名","闻到"],"危":["危害","危机","危险"],"忙":["帮忙","急忙","连忙"],"核":["核心","核桃","考核"],"暗":["黑暗","暗暗","暗中"],"姐":["姐姐","小姐","大姐"],"介":["介绍","媒介","简介"],"坏":["坏处","破坏","坏蛋"],"讨":["讨厌","讨论","检讨"],"丽":["美丽","壮丽","华丽"],"良":["优良","良好","改良"],"序":["秩序","工序","程序"],"升":["上升","升学","提升"],"监":["监狱","监督","监视"],"临":["临时","光临","面临"],"亮":["明亮","月亮","漂亮"],"露":["揭露","暴露","露面"],"永":["永远","永久","永乐"],"呼":["呼吸","招呼","呼呼"],"味":["味道","气味","趣味"],"野":["田野","野兽","视野"],"架":["书架","吵架","打架"],"域":["区域","流域","领域"],"沙":["沙发","沙子","沙漠"],"掉":["失掉","杀掉","吃掉"],"括":["包括","概括","括号"],"舰":["军舰","舰队","舰船"],"鱼":["金鱼","鲸鱼","鱼类"],"杂":["复杂","杂技","杂志"],"误":["误会","错误","耽误"],"湾":["台湾","海湾","河湾"],"吉":["吉祥","吉利","吉象"],"减":["减少","减轻","减产"],"编":["改编","编制","编辑"],"楚":["清楚","楚王","楚国"],"肯":["肯定","宁肯","不肯"],"测":["测验","测试","测量"],"败":["失败","打败","腐败"],"屋":["同屋","屋子","房屋"],"跑":["跑步","奔跑","跑道"],"梦":["做梦","梦想","梦见"],"散":["散步","分散","散布"],"温":["气温","温度","温暖"],"困":["困难","困苦","贫困"],"剑":["宝剑","长剑","剑法"],"渐":["渐渐","逐渐","日渐"],"封":["信封","封建","封锁"],"救":["挽救","抢救","救济"],"贵":["宝贵","贵姓","珍贵"],"枪":["手枪","机枪","枪毙"],"缺":["缺乏","缺少","缺点"],"楼":["楼梯","楼房","楼道"],"县":["县城","县长","县级"],"尚":["高尚","和尚","风尚"],"毫":["毫不","毫无","丝毫"],"移":["移动","转移","移民"],"娘":["姑娘","新娘","娘子"],"朋":["朋友","小朋友","亲朋"],"画":["画报","图画","画家"],"班":["上班","下班","坐班"],"智":["智慧","才智","智力"],"亦":["亦可","亦然","亦且"],"耳":["耳朵","耳边","耳光"],"恩":["恩人","恩情","恩爱"],"短":["短期","缩短","短促"],"掌":["掌握","鼓掌","掌声"],"恐":["恐怕","恐怖","恐惧"],"遗":["遗产","遗憾","遗留"],"固":["巩固","固体","固定"],"席":["主席","出席","列席"],"松":["轻松","放松","松树"],"秘":["秘密","奥秘","神秘"],"谢":["感谢","谢谢","谢绝"],"鲁":["粗鲁","秘鲁","鲁国"],"遇":["遇到","遇见","待遇"],"康":["健康","太康","康复"],"虑":["考虑","忧虑","顾虑"],"幸":["不幸","幸福","幸亏"],"均":["平均","均匀","人均"],"销":["供销","展销","报销"],"钟":["分钟","点钟","钟头"],"诗":["诗人","诗歌","诗文"],"藏":["储藏","收藏","矿藏"],"赶":["赶快","赶紧","赶上"],"剧":["剧场","剧烈","剧院"],"票":["邮票","钞票","发票"],"损":["损失","损坏","损害"],"忽":["忽然","忽视","忽略"],"巨":["巨大","艰巨","巨额"],"炮":["炮弹","大炮","炮火"],"旧":["仍旧","依旧","照旧"],"端":["极端","端正","争端"],"探":["探索","侦探","勘探"],"湖":["湖北","湖南","江湖"],"录":["录像","录音","记录"],"叶":["叶子","茶叶","中叶"],"春":["春天","春节","春季"],"乡":["乡下","家乡","故乡"],"附":["附近","附加","附和"],"吸":["吸引","吸收","呼吸"],"予":["给予","予以","授予"],"礼":["敬礼","礼堂","礼物"],"港":["港口","港币","海港"],"雨":["雨衣","暴雨","雨伞"],"呀":["哎呀","天呀","啊呀"],"板":["老板","黑板","地板"],"庭":["家庭","法庭","庭长"],"妇":["妇女","妇人","媳妇"],"归":["归纳","归结","归还"],"睛":["眼睛","定睛","点睛"],"饭":["午饭","早饭","晚饭"],"额":["超额","名额","定额"],"含":["包含","含糊","含量"],"顺":["顺便","顺利","通顺"],"输":["运输","输入","输出"],"摇":["动摇","摇摆","摇晃"],"招":["招呼","招待","招待会"],"婚":["婚姻","离婚","结婚"],"脱":["脱离","摆脱","脱落"],"补":["补习","补充","补课"],"谓":["所谓","无所谓","可谓"],"督":["监督","总督","督促"],"毒":["消毒","吸毒","恶毒"],"油":["汽油","石油","酱油"],"疗":["医疗","治疗","疗养"],"旅":["旅客","旅行","旅途"],"泽":["沼泽","光泽","色泽"],"材":["教材","材料","器材"],"灭":["消灭","歼灭","灭亡"],"逐":["逐步","逐渐","逐年"],"莫":["莫非","莫大","约莫"],"笔":["笔记","粉笔","钢笔"],"亡":["死亡","灭亡","伤亡"],"鲜":["新鲜","鲜花","鲜明"],"词":["单词","生词","词典"],"圣":["神圣","圣诞节","大圣"],"择":["选择","择优","择业"],"寻":["寻找","寻求","寻思"],"厂":["工厂","厂长","厂商"],"睡":["睡觉","睡眠","睡着"],"博":["博士","博物馆","赌博"],"勒":["勒马","勒索","勒令"],"烟":["烟囱","香烟","烟草"],"授":["教授","传授","函授"],"诺":["承诺","许诺","诺言"],"伦":["伦理","伦比","绝伦"],"岸":["口岸","对岸","沿岸"],"奥":["奥秘","深奥","奥运"],"唐":["荒唐","唐代","唐朝"],"卖":["买卖","出卖","卖国"],"俄":["俄国","俄军","沙俄"],"炸":["爆炸","炸弹","炸药"],"载":["记载","载重","下载"],"洛":["洛阳","洛林","洛克"],"健":["健康","健全","保健"],"堂":["礼堂","食堂","教堂"],"旁":["旁边","一旁","两旁"],"宫":["宫殿","宫女","宫中"],"喝":["喝道","喝酒","吃喝"],"借":["借口","借助","借鉴"],"君":["君主","君王","君子"],"禁":["禁止","不禁","严禁"],"阴":["阴天","阴谋","阴暗"],"园":["公园","花园","动物园"],"谋":["参谋","阴谋","谋求"],"宋":["宋江","宋代","北宋"],"避":["避免","逃避","回避"],"抓":["抓紧","抓住","抓起"],"荣":["光荣","繁荣","荣幸"],"姑":["姑姑","姑娘","姑且"],"孙":["孙女","孙子","子孙"],"逃":["逃避","逃荒","逃走"],"牙":["牙刷","牙膏","牙齿"],"束":["结束","束缚","拘束"],"跳":["跳舞","跳动","跳跃"],"顶":["顶点","顶端","头顶"]}; // { "字": ["组词1","组词2","组词3"], ... }
+
+const CHAR_INDEX = {};
+LEVELS.forEach(l => l.chars.forEach(c => { CHAR_INDEX[c.h] = c; }));
+
+const THEME_COLORS = {
+  rock:   { a:"#3a2c22", b:"#211710", accent:"#a1887f" },
+  ice:    { a:"#173a52", b:"#0d1f30", accent:"#81d4fa" },
+  fire:   { a:"#4a2013", b:"#28110a", accent:"#ff7043" },
+  wind:   { a:"#1e3a24", b:"#0f1f14", accent:"#81c784" },
+  shadow: { a:"#2c2050", b:"#170f2e", accent:"#9575cd" },
+  cosmic: { a:"#4a3a10", b:"#241d08", accent:"#ffca28" },
+};
+
+/* =====================================================================
+   SOUND EFFECTS — synthesized with Web Audio API (no external audio files)
+   ===================================================================== */
+let soundOn = true;
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if(audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, duration, opts={}){
+  if(!soundOn) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t0 = ctx.currentTime + (opts.delay || 0);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = opts.type || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  if(opts.toFreq){ osc.frequency.exponentialRampToValueAtTime(opts.toFreq, t0 + duration); }
+  const vol = opts.gain || 0.16;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.02, duration/4));
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + duration + 0.02);
+}
+function noiseBurst(duration=0.25, gain=0.2, delay=0){
+  if(!soundOn) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t0 = ctx.currentTime + delay;
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){ data[i] = (Math.random()*2-1) * (1 - i/bufferSize); }
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  src.connect(g); g.connect(ctx.destination);
+  src.start(t0);
+}
+const SFX = {
+  click(){ tone(700, 0.05, {type:"square", gain:0.08}); },
+  correctBeam(){
+    // rising charge + laser sweep, like a hero's energy beam
+    tone(500, 0.12, {type:"sine", toFreq:1400, gain:0.1});
+    tone(1800, 0.28, {type:"sawtooth", toFreq:350, gain:0.14, delay:0.1});
+    noiseBurst(0.15, 0.1, 0.3);
+  },
+  wrong(){
+    tone(320, 0.28, {type:"square", toFreq:120, gain:0.13});
+  },
+  powerUp(){
+    // transformation-style rising tone
+    tone(180, 0.55, {type:"sine", toFreq:1100, gain:0.13});
+    tone(90, 0.55, {type:"triangle", toFreq:500, gain:0.08, delay:0.05});
+  },
+  victory(){
+    tone(523, 0.16, {type:"triangle", gain:0.14});
+    tone(659, 0.16, {type:"triangle", gain:0.14, delay:0.16});
+    tone(784, 0.32, {type:"triangle", gain:0.16, delay:0.32});
+  },
+  monsterDown(){
+    noiseBurst(0.35, 0.22, 0);
+    tone(90, 0.4, {type:"square", toFreq:40, gain:0.15, delay:0.02});
+  }
+};
+
+/* speak 2-3 vocabulary words for a character aloud, then call onDone.
+   If speech isn't available/enabled, wait a short reading pause instead
+   so the next word never appears before this one has had time to sink in. */
+function speakWordsThen(hanzi, onDone){
+  const words = CHAR_WORDS[hanzi] || [];
+  const canSpeak = soundOn && ("speechSynthesis" in window) && words.length > 0;
+
+  if(!canSpeak){
+    setTimeout(onDone, 1100);
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  let idx = 0;
+  let done = false;
+  const finish = () => { if(done) return; done = true; clearTimeout(safety); onDone(); };
+  // safety net in case a device's TTS engine stalls or never fires onend
+  const safety = setTimeout(finish, 7000);
+
+  function speakNext(){
+    if(idx >= words.length){ finish(); return; }
+    const utter = new SpeechSynthesisUtterance(words[idx]);
+    utter.lang = "zh-CN";
+    utter.rate = 0.85;
+    idx++;
+    utter.onend = speakNext;
+    utter.onerror = speakNext;
+    window.speechSynthesis.speak(utter);
+  }
+  speakNext();
+}
+
+/* =====================================================================
+   STORAGE
+   ===================================================================== */
+const STORAGE_KEY = "hanzi-hero-progress-v1";
+let STATE = {
+  unlockedLevel: 1,
+  levelStars: {},     // { "1": 3, "2": 2, ... }
+  mistakes: {},        // { "的": "de", ... }  chars ever missed & not yet cleared
+  learned: {}          // { "的": true, ... }  chars ever answered correctly
+};
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      STATE = Object.assign(STATE, parsed);
+    }
+  }catch(e){ /* no saved state yet, use defaults */ }
+  renderHome();
+}
+async function saveState(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(STATE), false);
+  }catch(e){ console.warn("save failed", e); }
+}
+
+/* =====================================================================
+   NAV
+   ===================================================================== */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  window.scrollTo(0,0);
+}
+
+/* =====================================================================
+   HOME SCREEN
+   ===================================================================== */
+function renderHome(){
+  document.getElementById("learnedCount").textContent = Object.keys(STATE.learned).length;
+
+  const mistakeKeys = Object.keys(STATE.mistakes);
+  const reviewCard = document.getElementById("reviewCard");
+  if(mistakeKeys.length > 0){
+    reviewCard.classList.remove("hidden");
+    document.getElementById("reviewCount").textContent = mistakeKeys.length;
+    reviewCard.onclick = () => startReview();
+  } else {
+    reviewCard.classList.add("hidden");
+  }
+
+  const path = document.getElementById("levelPath");
+  path.innerHTML = "";
+  for(let i=0;i<LEVELS.length;i++){
+    const lvl = LEVELS[i];
+    const row = document.createElement("div");
+    row.className = "level-row" + (i % 2 === 1 ? " right" : "");
+
+    const wrap = document.createElement("div");
+    wrap.className = "level-node-wrap";
+
+    const node = document.createElement("div");
+    const isDone = !!STATE.levelStars[lvl.id];
+    const isLocked = lvl.id > STATE.unlockedLevel;
+    const isCurrent = lvl.id === STATE.unlockedLevel && !isDone;
+    node.className = "level-node" + (isLocked ? " locked" : "") + (isDone ? " done" : "") + (isCurrent ? " current" : "");
+    node.innerHTML = monsterEmoji(lvl.theme);
+    const numTag = document.createElement("div");
+    numTag.className = "level-num";
+    numTag.textContent = lvl.id;
+    node.appendChild(numTag);
+    if(isLocked){
+      const lockB = document.createElement("div");
+      lockB.className = "lock-badge";
+      lockB.textContent = "🔒";
+      node.appendChild(lockB);
+    }
+    node.onclick = () => { if(!isLocked) startLevel(lvl.id); };
+
+    const starsDiv = document.createElement("div");
+    starsDiv.className = "level-stars";
+    starsDiv.textContent = isDone ? "★".repeat(STATE.levelStars[lvl.id]) + "☆".repeat(3-STATE.levelStars[lvl.id]) : "";
+
+    wrap.appendChild(node);
+    wrap.appendChild(starsDiv);
+    row.appendChild(wrap);
+    path.appendChild(row);
+
+    if(i < LEVELS.length - 1){
+      const conn = document.createElement("div");
+      conn.className = "connector";
+      path.appendChild(conn);
+    }
+  }
+  showScreen("screen-home");
+}
+
+function monsterEmoji(theme){
+  const map = { rock:"🪨", ice:"❄️", fire:"🔥", wind:"🌪️", shadow:"🌑", cosmic:"⭐" };
+  return `<span style="font-size:30px">${map[theme] || "👾"}</span>`;
+}
+
+/* =====================================================================
+   BATTLE ENGINE
+   ===================================================================== */
+let battle = null; // current battle state
+
+function buildQueue(chars){
+  // shuffle
+  const arr = chars.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function pickDistractors(correctPinyin, count){
+  const pool = [];
+  const allChars = LEVELS.flatMap(l => l.chars);
+  const seen = new Set([correctPinyin]);
+  // shuffle a copy for randomness
+  const shuffled = allChars.slice().sort(()=>Math.random()-0.5);
+  for(const c of shuffled){
+    if(!seen.has(c.p)){
+      seen.add(c.p);
+      pool.push(c.p);
+      if(pool.length >= count) break;
+    }
+  }
+  return pool;
+}
+
+function startLevel(levelId){
+  const lvl = LEVELS.find(l => l.id === levelId);
+  battle = {
+    mode: "level",
+    levelId: levelId,
+    monsterName: lvl.monster,
+    theme: lvl.theme,
+    totalCount: lvl.chars.length,
+    clearedSet: new Set(),
+    queue: buildQueue(lvl.chars),
+    mistakesThisRun: 0,
+  };
+  renderBattleShell();
+  nextQuestion();
+}
+
+function startReview(){
+  const chars = Object.keys(STATE.mistakes).map(h => CHAR_INDEX[h] || {h, p: STATE.mistakes[h], w:[]});
+  battle = {
+    mode: "review",
+    levelId: null,
+    monsterName: "复习怪兽",
+    theme: "shadow",
+    totalCount: chars.length,
+    clearedSet: new Set(),
+    queue: buildQueue(chars),
+    mistakesThisRun: 0,
+  };
+  renderBattleShell();
+  nextQuestion();
+}
+
+function renderBattleShell(){
+  const colors = THEME_COLORS[battle.theme];
+  const arena = document.getElementById("arena");
+  arena.style.setProperty("--arena-a", colors.a);
+  arena.style.setProperty("--arena-b", colors.b);
+
+  document.getElementById("battleLevelNum").textContent = battle.levelId || "复习";
+  document.getElementById("battleMonsterName").textContent = battle.monsterName;
+  document.getElementById("monsterHpName").textContent = battle.monsterName;
+  document.querySelector("#monsterSvg use").setAttribute("href", "#svg-monster-" + battle.theme);
+
+  updateHpBars();
+  showScreen("screen-battle");
+  ensureAudio();
+  SFX.powerUp();
+}
+
+function updateHpBars(){
+  const clearedCount = battle.clearedSet.size;
+  const heroPct = Math.round((clearedCount / battle.totalCount) * 100);
+  const monsterPct = 100 - heroPct;
+  document.getElementById("heroHp").style.width = heroPct + "%";
+  document.getElementById("heroHpLabel").textContent = heroPct + "%";
+  document.getElementById("monsterHp").style.width = monsterPct + "%";
+  document.getElementById("monsterHpLabel").textContent = monsterPct + "%";
+}
+
+function renderQueueStrip(){
+  const strip = document.getElementById("queueStrip");
+  strip.innerHTML = "";
+  battle.queue.forEach((c, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "queue-chip" + (idx === 0 ? " active" : "");
+    chip.textContent = c.h;
+    strip.appendChild(chip);
+  });
+}
+
+function nextQuestion(){
+  if(battle.queue.length === 0){
+    finishBattle();
+    return;
+  }
+  renderQueueStrip();
+  const current = battle.queue[0];
+  document.getElementById("hanziBig").textContent = current.h;
+
+  const hintsWrap = document.getElementById("wordHints");
+  hintsWrap.innerHTML = "";
+  const words = CHAR_WORDS[current.h] || [];
+  words.forEach(w => {
+    const chip = document.createElement("span");
+    chip.className = "word-chip";
+    chip.textContent = w;
+    hintsWrap.appendChild(chip);
+  });
+
+  const distractors = pickDistractors(current.p, 3);
+  const options = [current.p, ...distractors];
+  for(let i=options.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [options[i],options[j]] = [options[j],options[i]];
+  }
+
+  const optsWrap = document.getElementById("options");
+  optsWrap.innerHTML = "";
+  options.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    btn.textContent = p;
+    btn.onclick = () => handleAnswer(p === current.p, btn, current);
+    optsWrap.appendChild(btn);
+  });
+}
+
+function handleAnswer(isCorrect, btnEl, current){
+  document.querySelectorAll(".opt-btn").forEach(b => b.setAttribute("disabled","true"));
+  ensureAudio();
+  SFX.click();
+
+  if(isCorrect){
+    btnEl.classList.add("correct");
+    battle.queue.shift();
+    battle.clearedSet.add(current.h);
+    STATE.learned[current.h] = true;
+    delete STATE.mistakes[current.h];
+    fireBeam();
+    SFX.correctBeam();
+    document.getElementById("monsterCombatant").classList.add("shake");
+    setTimeout(()=> document.getElementById("monsterCombatant").classList.remove("shake"), 350);
+  } else {
+    btnEl.classList.add("wrong");
+    // show correct one too
+    document.querySelectorAll(".opt-btn").forEach(b => { if(b.textContent === current.p) b.classList.add("correct"); });
+    battle.mistakesThisRun++;
+    STATE.mistakes[current.h] = current.p;
+    SFX.wrong();
+    // requeue a few spots later
+    battle.queue.shift();
+    const insertAt = Math.min(3, battle.queue.length);
+    battle.queue.splice(insertAt, 0, current);
+    document.getElementById("heroCombatant").classList.add("shake");
+    setTimeout(()=> document.getElementById("heroCombatant").classList.remove("shake"), 350);
+  }
+
+  // highlight the word-hint chips and read the vocabulary words aloud;
+  // the next character will not appear until this finishes
+  document.querySelectorAll(".word-chip").forEach(c => c.classList.add("speaking"));
+  showReadingStatus(true);
+
+  updateHpBars();
+  saveState();
+
+  setTimeout(() => {
+    speakWordsThen(current.h, () => {
+      showReadingStatus(false);
+      nextQuestion();
+    });
+  }, 300);
+}
+
+function showReadingStatus(on){
+  const el = document.getElementById("readingStatus");
+  if(!el) return;
+  el.classList.toggle("hidden", !on);
+}
+
+function fireBeam(){
+  const arena = document.getElementById("arena");
+  const beam = document.createElement("div");
+  beam.className = "beam fire";
+  beam.style.left = "40%";
+  beam.style.top = "48%";
+  beam.style.width = "22%";
+  arena.appendChild(beam);
+  setTimeout(()=> beam.remove(), 500);
+}
+
+function finishBattle(){
+  const mistakes = battle.mistakesThisRun;
+  let stars = 3;
+  if(mistakes > 0 && mistakes <= 3) stars = 2;
+  else if(mistakes > 3) stars = 1;
+
+  SFX.monsterDown();
+  setTimeout(() => SFX.victory(), 300);
+
+  if(battle.mode === "level"){
+    const prevStars = STATE.levelStars[battle.levelId] || 0;
+    STATE.levelStars[battle.levelId] = Math.max(prevStars, stars);
+    if(battle.levelId === STATE.unlockedLevel && STATE.unlockedLevel < LEVELS.length){
+      STATE.unlockedLevel = battle.levelId + 1;
+    }
+    saveState();
+
+    document.getElementById("resultBadge").textContent = "🎉";
+    document.getElementById("resultTitle").textContent = battle.monsterName + " 被打败了！";
+    document.getElementById("resultSub").textContent = "你认识了 " + battle.totalCount + " 个新汉字";
+    document.getElementById("resultStars").textContent = "★".repeat(stars) + "☆".repeat(3-stars);
+
+    const nextBtn = document.getElementById("nextLevelBtn");
+    if(battle.levelId < LEVELS.length){
+      nextBtn.textContent = "前往下一关";
+      nextBtn.classList.remove("hidden");
+      nextBtn.onclick = () => startLevel(battle.levelId + 1);
+    } else {
+      nextBtn.textContent = "太棒了，全部完成！";
+      nextBtn.classList.remove("hidden");
+      nextBtn.onclick = () => renderHome();
+    }
+  } else {
+    saveState();
+    document.getElementById("resultBadge").textContent = "📖";
+    document.getElementById("resultTitle").textContent = "复习完成！";
+    document.getElementById("resultSub").textContent = "怪兽笔记本里的字都复习了一遍";
+    document.getElementById("resultStars").textContent = "★".repeat(stars) + "☆".repeat(3-stars);
+    const nextBtn = document.getElementById("nextLevelBtn");
+    nextBtn.classList.add("hidden");
+  }
+
+  document.getElementById("mapBtn").onclick = () => renderHome();
+  showScreen("screen-result");
+}
+
+document.getElementById("backBtn").onclick = () => renderHome();
+
+document.getElementById("soundToggle").onclick = () => {
+  soundOn = !soundOn;
+  document.getElementById("soundToggle").textContent = soundOn ? "🔊" : "🔇";
+  if(soundOn){ ensureAudio(); SFX.click(); }
+  else if("speechSynthesis" in window){ window.speechSynthesis.cancel(); }
+};
+
+/* =====================================================================
+   BACKGROUND STARFIELD (decorative canvas)
+   ===================================================================== */
+(function starfield(){
+  const canvas = document.getElementById("stars");
+  const ctx = canvas.getContext("2d");
+  function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener("resize", resize);
+  const stars = Array.from({length:90}, () => ({
+    x: Math.random()*window.innerWidth,
+    y: Math.random()*window.innerHeight,
+    r: Math.random()*1.4 + 0.3,
+    o: Math.random()*0.6 + 0.2,
+    tw: Math.random()*0.02 + 0.005
+  }));
+  function draw(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    for(const s of stars){
+      s.o += s.tw;
+      const alpha = Math.abs(Math.sin(s.o));
+      ctx.fillStyle = `rgba(200,215,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+loadState();
+</script>
+</body>
+</html>
